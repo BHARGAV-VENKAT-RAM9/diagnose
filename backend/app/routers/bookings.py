@@ -6,6 +6,7 @@ from datetime import datetime, time as dt_time, timedelta
 from typing import List
 from uuid import UUID
 
+# pyrefly: ignore [missing-import]
 import razorpay
 from app.database import get_db
 from app.config import settings
@@ -243,12 +244,12 @@ def create_booking(payload: BookingCreate, db: Session = Depends(get_db)):
         # Trigger SMS immediately if booking is confirmed (CASH payment method)
         if booking.status == "CONFIRMED":
             send_booking_confirm_sms(
-                phone=patient.phone,
-                name=patient.full_name,
-                booking_id=str(booking.id),
-                service_name=", ".join([t.name for t in booking.tests]),
-                date_str=booking.slot_time.strftime('%Y-%m-%d'),
-                time_str=booking.slot_time.strftime('%I:%M %p')
+                patient.phone,
+                patient.full_name,
+                str(booking.id),
+                ", ".join([t.name for t in booking.tests]),
+                booking.slot_time.strftime('%Y-%m-%d'),
+                booking.slot_time.strftime('%H:%M')
             )
 
         return booking
@@ -305,12 +306,12 @@ def verify_payment(payload: PaymentVerify, db: Session = Depends(get_db)):
     # Send confirmation SMS
     patient = booking.patient
     send_booking_confirm_sms(
-        phone=patient.phone,
-        name=patient.full_name,
-        booking_id=str(booking.id),
-        service_name=", ".join([t.name for t in booking.tests]),
-        date_str=booking.slot_time.strftime('%Y-%m-%d'),
-        time_str=booking.slot_time.strftime('%I:%M %p')
+        patient.phone,
+        patient.full_name,
+        str(booking.id),
+        ", ".join([t.name for t in booking.tests]),
+        booking.slot_time.strftime('%Y-%m-%d'),
+        booking.slot_time.strftime('%H:%M')
     )
     
     db.commit()

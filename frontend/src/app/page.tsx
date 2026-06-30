@@ -60,6 +60,32 @@ const LOCAL_TESTS = [
     home_collection: true,
     home_notes: "Avoid alcohol 24 hours prior to collection.",
     description: "Measures proteins, enzymes, and bilirubin to screen for liver disorders."
+  },
+  {
+    id: "t5",
+    name: "Digital ECG (Electrocardiogram)",
+    slug: "digital-ecg",
+    price: 399,
+    tat: "2 Hours",
+    sample_type: "Radiology",
+    priority: "ROUTINE",
+    preparation: "Avoid caffeine or nicotine 2 hours prior to the test.",
+    home_collection: true,
+    home_notes: "Requires a quiet, flat resting space.",
+    description: "Records the electrical signals in your heart to check for different heart conditions."
+  },
+  {
+    id: "t6",
+    name: "Ultrasound Abdomen & Pelvis (USG)",
+    slug: "ultrasound-abdomen-pelvis",
+    price: 1299,
+    tat: "4 Hours",
+    sample_type: "Radiology",
+    priority: "ROUTINE",
+    preparation: "Full bladder required. Drink 4-5 glasses of water 1 hour before.",
+    home_collection: false,
+    home_notes: "Only available for walk-in lab visits.",
+    description: "Uses sound waves to evaluate abdominal organs like liver, kidneys, gallbladder, spleen, and pelvis."
   }
 ];
 
@@ -209,6 +235,145 @@ const generatePackageDetails = (pkg: any, testsList: any[]) => {
   };
 };
 
+const generateTestDetails = (test: any) => {
+  if (!test) return null;
+  const name = (test.name || "").toUpperCase();
+  const sampleType = (test.sample_type || "").toUpperCase();
+  const preparation = test.preparation || "No special preparation required.";
+  const description = test.description || `Clinical laboratory evaluation for ${test.name || "this biomarker"}. High accuracy reports delivered within standard turnaround times.`;
+
+  let whyTake = "This test is recommended to screen for subclinical deficiencies, evaluate organ function, monitor ongoing therapies, or establish a baseline diagnostic profile for wellness tracking.";
+  let dos = [
+    "Stay well-hydrated by drinking normal amounts of water before the sample collection.",
+    "Inform the laboratory team about any ongoing prescription medicines, vitamins, or supplements you are taking."
+  ];
+  let donts = [
+    "Avoid consuming alcohol or high-fat meals for 24 hours prior to the test.",
+    "Do not engage in strenuous physical exercise or heavy workouts immediately before your slot."
+  ];
+
+  if (name.includes("VITAMIN D") || name.includes("CHOLECALCIFEROL") || name.includes("VITAMIN B12") || name.includes("FOLATE")) {
+    whyTake = "Helps assess vitamin and nutrient levels which are essential for bone health, nerve function, red blood cell production, immune response, and overall cellular wellness.";
+    dos = [
+      "Consult your physician if you should stop taking high-dose biotin or multivitamin supplements 24 hours prior to the test.",
+      "Stay hydrated by drinking plenty of plain water before the sample collection."
+    ];
+    donts = [
+      "Avoid taking any dietary supplements or vitamin pills on the morning of the test before your sample is drawn.",
+      "Do not perform heavy resistance training just before your appointment."
+    ];
+  } else if (name.includes("THYROID") || name.includes("TSH") || name.includes("T3") || name.includes("T4")) {
+    whyTake = "Used to evaluate the function of your thyroid gland and diagnose conditions such as hyperthyroidism (overactive thyroid) or hypothyroidism (underactive thyroid).";
+    dos = [
+      "Have your sample collected in the morning, as thyroid hormone levels can show daily fluctuations.",
+      "Inform the technician if you are on thyroid replacement medications (e.g., Levothyroxine)."
+    ];
+    donts = [
+      "Do not take your daily dose of thyroid medication *before* the blood draw (take it immediately after).",
+      "Avoid high levels of stress or severe physical exertion before the test."
+    ];
+  } else if (name.includes("GLUCOSE") || name.includes("SUGAR") || name.includes("HBA1C") || name.includes("DIABETES") || name.includes("INSULIN")) {
+    whyTake = "Critical for diagnosing prediabetes, type 1/2 diabetes, and monitoring glucose control over short or long terms (HbA1c).";
+    if (preparation.toUpperCase().includes("FASTING")) {
+      dos = [
+        "Strictly fast for 8 to 12 hours before the test. You may only drink plain water.",
+        "Ensure the blood sample is collected first thing in the morning after fasting."
+      ];
+      donts = [
+        "Avoid chewing gum, drinking coffee, tea, juices, or smoking during the fasting window.",
+        "Do not skip regular diabetes medications unless explicitly advised by your doctor."
+      ];
+    } else if (name.includes("POST PRANDIAL") || name.includes("POST LUNCH") || name.includes("PPBS")) {
+      dos = [
+        "Ensure the sample is collected exactly 2 hours after you start eating your meal.",
+        "Eat your normal breakfast or lunch as prescribed/recommended."
+      ];
+      donts = [
+        "Do not consume any snacks, tea, or beverages between the end of your meal and the blood collection.",
+        "Avoid any strenuous physical activity during the 2-hour waiting period."
+      ];
+    } else {
+      dos = [
+        "Ensure you remain hydrated prior to the test.",
+        "Inform the phlebotomist if you are diabetic and list your medications."
+      ];
+      donts = [
+        "Avoid sudden dietary changes or excessive sweet intake on the day before the test.",
+        "Do not perform extreme physical workouts prior to blood collection."
+      ];
+    }
+  } else if (name.includes("LIPID") || name.includes("CHOLESTEROL") || name.includes("TRIGLYCERID") || name.includes("HDL") || name.includes("LDL")) {
+    whyTake = "Assesses cardiovascular health, cholesterol balance, and screens for the risk of heart disease or stroke.";
+    dos = [
+      "Fast strictly for 9 to 12 hours before the test (water is permitted).",
+      "Maintain a stable, normal diet for at least 3-4 days before the test."
+    ];
+    donts = [
+      "Do not drink alcohol for at least 24 to 48 hours prior to the blood draw.",
+      "Avoid eating fatty, heavy, or fried food the night before your test."
+    ];
+  } else if (name.includes("CBC") || name.includes("HEMOGLOBIN") || name.includes("CELL COUNT") || name.includes("PLATELET") || name.includes("WBC")) {
+    whyTake = "Provides a complete profile of blood cells (red, white, and platelets) to check for anemia, infections, inflammation, and immune health.";
+    dos = [
+      "Drink standard amounts of water to stay hydrated so veins are easier to access.",
+      "Inform the technician if you have had recent fever, infections, or bleeding episodes."
+    ];
+    donts = [
+      "Avoid smoking right before the test.",
+      "Do not exercise heavily on the morning of the test."
+    ];
+  } else if (name.includes("KIDNEY") || name.includes("RENAL") || name.includes("CREATININE") || name.includes("UREA") || name.includes("URIC ACID")) {
+    whyTake = "Evaluates renal filtration and kidney health, helping to screen for dysfunctions, dehydration, or electrolyte imbalances.";
+    dos = [
+      "Keep hydration normal by drinking clean water.",
+      "Inform your doctor if you take NSAIDs (painkillers) regularly, as they affect kidney parameters."
+    ];
+    donts = [
+      "Avoid eating large amounts of cooked meat or protein shakes 24 hours prior to creatinine tests.",
+      "Avoid dehydration or excessive sweating before sample collection."
+    ];
+  } else if (name.includes("LIVER") || name.includes("LFT") || name.includes("BILIRUBIN") || name.includes("SGOT") || name.includes("SGPT") || name.includes("ALBUMIN")) {
+    whyTake = "Assesses the synthetic, metabolic, and excretory function of the liver and gall bladder, screening for infections, damage, or enzyme leakage.";
+    dos = [
+      "Inform the laboratory team about any alcohol consumption, antibiotics, or chronic therapies.",
+      "Drink plain water to stay hydrated before your slot."
+    ];
+    donts = [
+      "Do not consume alcohol for at least 24-48 hours prior to testing.",
+      "Avoid heavy meals or high-fat foods in the evening before the test."
+    ];
+  } else if (sampleType === "URINE" || name.includes("URINE")) {
+    whyTake = "Used to detect urinary tract infections (UTIs), kidney disorders, diabetes, and other metabolic issues.";
+    dos = [
+      "Collect the first-morning urine sample if possible, as it is most concentrated.",
+      "Provide a clean-catch mid-stream urine sample (discard the first portion, collect the middle portion directly in the sterile cup).",
+      "Wash and dry your hands and genital area before collecting to prevent external contamination."
+    ];
+    donts = [
+      "Do not touch the inside of the sterile container or lid with your fingers.",
+      "Avoid taking the test during your menstrual cycle if possible (or inform the lab technician)."
+    ];
+  } else if (sampleType === "RADIOLOGY" || sampleType === "SCAN" || name.includes("ECG") || name.includes("XRAY") || name.includes("X-RAY") || name.includes("ULTRASOUND") || name.includes("USG")) {
+    whyTake = "Helps visualize bone, soft tissue structures, or electrical cardiac activity (ECG) to identify structural or physiological anomalies.";
+    dos = [
+      "Wear comfortable, loose-fitting clothing that is easy to remove or adjust.",
+      "Inform the technician if you have any implants, metal in your body, pacemakers, or if there is any possibility of pregnancy."
+    ];
+    donts = [
+      "Do not wear metallic jewelry, watches, keys, or clothing with metal buttons/zippers near the scan area.",
+      "Do not drink caffeine or smoke for 2 hours before an ECG, as it can affect heart rate results."
+    ];
+  }
+
+  return {
+    description,
+    preparation,
+    whyTake,
+    dos,
+    donts
+  };
+};
+
 export default function Home() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -216,11 +381,36 @@ export default function Home() {
   // Dynamic catalog state
   const [tests, setTests] = useState<any[]>(LOCAL_TESTS);
   const [packages, setPackages] = useState<any[]>(LOCAL_PACKAGES);
+  const [adminBookings, setAdminBookings] = useState<any[]>([
+    {
+      id: "b-101",
+      patient: "Rajesh Kumar",
+      phone: "9398175183",
+      tests: ["Complete Blood Count (CBC)"],
+      type: "Home Collection",
+      status: "Confirmed",
+      slot: "2026-06-20 08:00",
+      report_uploaded: false,
+      critical: false
+    },
+    {
+      id: "b-102",
+      patient: "Saraswathi Devi",
+      phone: "9123456789",
+      tests: ["Thyroid Profile (T3, T4, TSH)"],
+      type: "Lab Visit",
+      status: "Sample Collected",
+      slot: "2026-06-19 10:00",
+      report_uploaded: false,
+      critical: false
+    }
+  ]);
 
   // Carousel slider state
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [activePackageDetails, setActivePackageDetails] = useState<any>(null);
+  const [activeTestDetails, setActiveTestDetails] = useState<any>(null);
 
   useEffect(() => {
     if (packages.length <= 1) return;
@@ -232,6 +422,132 @@ export default function Home() {
 
   // Cart & Booking Flow Actions
   const { addToCart } = useCart();
+
+  // Collection Mode Choice Modal States
+  const [showModeModal, setShowModeModal] = useState(false);
+  const [pendingSelectionItem, setPendingSelectionItem] = useState<any>(null);
+  const [pendingConcernSelection, setPendingConcernSelection] = useState<string | null>(null);
+
+  const handleTestClickHomepage = (test: any) => {
+    setPendingSelectionItem(test);
+    setPendingConcernSelection(null);
+    setShowModeModal(true);
+  };
+
+  const handleConcernClickHomepage = (concernId: string) => {
+    setPendingConcernSelection(concernId);
+    setPendingSelectionItem(null);
+    setShowModeModal(true);
+  };
+
+  const selectHomeCollection = () => {
+    if (pendingSelectionItem) {
+      addToCart({ ...pendingSelectionItem, type: "test" });
+      setShowModeModal(false);
+      setPendingSelectionItem(null);
+      router.push("/booking?type=HOME_COLLECTION");
+    } else if (pendingConcernSelection) {
+      const concernId = pendingConcernSelection;
+      setShowModeModal(false);
+      setPendingConcernSelection(null);
+      router.push(`/booking?concern=${concernId}&type=HOME_COLLECTION`);
+    }
+  };
+
+  const selectLabVisit = () => {
+    if (pendingSelectionItem) {
+      addToCart({ ...pendingSelectionItem, type: "test" });
+      setShowModeModal(false);
+      setPendingSelectionItem(null);
+      router.push("/booking?type=LAB_VISIT");
+    } else if (pendingConcernSelection) {
+      const concernId = pendingConcernSelection;
+      setShowModeModal(false);
+      setPendingConcernSelection(null);
+      router.push(`/booking?concern=${concernId}&type=LAB_VISIT`);
+    }
+  };
+
+  // Department-based Active Tab (Aarthi Scans inspired)
+  const [activeDeptTab, setActiveDeptTab] = useState<"blood" | "scans" | "packages">("blood");
+
+  // Fasting Calculator state hooks
+  const [calcTest, setCalcTest] = useState("t4"); // Defaults to LFT (t4)
+  const [calcTime, setCalcTime] = useState("08:00"); // Defaults to 8:00 AM
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const fastingSchedule = React.useMemo(() => {
+    let fastingHours = 0;
+    let testName = "Complete Blood Count";
+    if (calcTest === "t4") {
+      fastingHours = 10;
+      testName = "Liver Function Test (LFT)";
+    } else if (calcTest === "t2") {
+      fastingHours = 10;
+      testName = "Vitamin D (25-Hydroxy)";
+    } else if (calcTest === "t3") {
+      fastingHours = 8;
+      testName = "Thyroid Profile (T3, T4, TSH)";
+    } else {
+      return {
+        required: false,
+        hours: 0,
+        testName: "Complete Blood Count (CBC)",
+        lastMeal: "No fasting required",
+        instructions: "You can eat and drink normally before this test. No dietary restrictions."
+      };
+    }
+
+    const [hour, minute] = calcTime.split(":").map(Number);
+    let mealHour = hour - fastingHours;
+    let mealDay = "previous night";
+    
+    if (mealHour < 0) {
+      mealHour = 12 + mealHour; 
+      mealDay = "previous night";
+    } else if (mealHour === 0) {
+      mealHour = 12;
+      mealDay = "previous night";
+    } else {
+      mealDay = "same day morning";
+    }
+
+    const formatTime = (h: number, m: number, meridian: string) => {
+      return `${h}:${String(m).padStart(2, "0")} ${meridian}`;
+    };
+
+    const mealMeridian = mealDay === "previous night" ? "PM" : "AM";
+
+    return {
+      required: true,
+      hours: fastingHours,
+      testName,
+      lastMeal: `${formatTime(mealHour, minute, mealMeridian)} (${mealDay})`,
+      instructions: `Strict fasting required for ${fastingHours} hours. Only plain water is allowed. Do not consume tea, coffee, breakfast, or juice during this period.`
+    };
+  }, [calcTest, calcTime]);
+
+  const pathologyTests = React.useMemo(() => {
+    return tests.filter(t => 
+      t.sample_type !== "Radiology" && 
+      t.sample_type !== "Scan" && 
+      !t.name.toLowerCase().includes("ecg") && 
+      !t.name.toLowerCase().includes("xray") && 
+      !t.name.toLowerCase().includes("ultrasound") && 
+      !t.name.toLowerCase().includes("scan")
+    );
+  }, [tests]);
+
+  const radiologyTests = React.useMemo(() => {
+    return tests.filter(t => 
+      t.sample_type === "Radiology" || 
+      t.sample_type === "Scan" || 
+      t.name.toLowerCase().includes("ecg") || 
+      t.name.toLowerCase().includes("xray") || 
+      t.name.toLowerCase().includes("ultrasound") || 
+      t.name.toLowerCase().includes("scan")
+    );
+  }, [tests]);
 
   // Report Portal States
   const [showReportPortal, setShowReportPortal] = useState(false);
@@ -282,14 +598,14 @@ export default function Home() {
 
   const fetchCatalog = async () => {
     try {
-      const testsRes = await fetch("http://localhost:8000/api/v1/catalog/tests");
+      const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/tests");
       if (testsRes.ok) {
         const testsData = await testsRes.json();
         if (testsData && testsData.length > 0) {
           setTests(testsData);
         }
       }
-      const pkgsRes = await fetch("http://localhost:8000/api/v1/catalog/packages");
+      const pkgsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/packages");
       if (pkgsRes.ok) {
         const pkgsData = await pkgsRes.json();
         if (pkgsData && pkgsData.length > 0) {
@@ -303,7 +619,7 @@ export default function Home() {
 
   const fetchApprovedReviews = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/admin/reviews/approved");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/reviews/approved");
       if (res.ok) {
         const data = await res.json();
         setApprovedReviews(data.length > 0 ? data : DEFAULT_REVIEWS);
@@ -330,7 +646,7 @@ export default function Home() {
     setReviewSubmitError("");
     setReviewSubmitMessage("");
     try {
-      const res = await fetch("http://localhost:8000/api/v1/admin/reviews", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -356,7 +672,7 @@ export default function Home() {
 
   const fetchAdminBookings = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/admin/bookings");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/bookings");
       if (res.ok) {
         const data = await res.json();
         const formatted = data.map((b: any) => ({
@@ -381,7 +697,7 @@ export default function Home() {
 
   const fetchPendingReviews = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/admin/reviews/pending");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/reviews/pending");
       if (res.ok) {
         const data = await res.json();
         setPendingReviews(data);
@@ -393,7 +709,7 @@ export default function Home() {
 
   const handleApproveReview = async (reviewId: string) => {
     try {
-      const loginRes = await fetch("http://localhost:8000/api/v1/auth/login", {
+      const loginRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: "admin", password: "admin" })
@@ -405,7 +721,7 @@ export default function Home() {
       const loginData = await loginRes.json();
       const adminUserId = loginData.user_id;
 
-      const approveRes = await fetch(`http://localhost:8000/api/v1/admin/reviews/approve/${reviewId}?admin_user_id=${adminUserId}`, {
+      const approveRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/reviews/approve/${reviewId}?admin_user_id=${adminUserId}`, {
         method: "POST"
       });
       if (approveRes.ok) {
@@ -436,30 +752,6 @@ export default function Home() {
       fetchPendingReviews();
     }
   }, [showAdminPipeline]);
-  const [adminBookings, setAdminBookings] = useState<any[]>([
-    {
-      id: "b-101",
-      patient: "Rajesh Kumar",
-      phone: "9398175183",
-      tests: ["Complete Blood Count (CBC)"],
-      type: "Home Collection",
-      status: "Confirmed",
-      slot: "2026-06-20 08:00",
-      report_uploaded: false,
-      critical: false
-    },
-    {
-      id: "b-102",
-      patient: "Saraswathi Devi",
-      phone: "9123456789",
-      tests: ["Thyroid Profile (T3, T4, TSH)"],
-      type: "Lab Visit",
-      status: "Sample Collected",
-      slot: "2026-06-19 10:00",
-      report_uploaded: false,
-      critical: false
-    }
-  ]);
 
   // Lockout Timer Countdown effect
   useEffect(() => {
@@ -490,7 +782,7 @@ export default function Home() {
 
     setOtpError("");
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/reports/request-otp?phone=${portalPhone}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/request-otp?phone=${portalPhone}`, {
         method: "POST"
       });
       if (res.ok) {
@@ -514,7 +806,7 @@ export default function Home() {
     setOtpError("");
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/reports/verify-otp", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/reports/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: portalPhone, otp: portalOtp })
@@ -522,7 +814,7 @@ export default function Home() {
 
       if (res.ok) {
         setOtpVerified(true);
-        const reportsRes = await fetch(`http://localhost:8000/api/v1/reports/patient-reports?phone=${portalPhone}`);
+        const reportsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/patient-reports?phone=${portalPhone}`);
         if (reportsRes.ok) {
           const reportsData = await reportsRes.json();
           const formatted = reportsData.map((r: any) => ({
@@ -615,50 +907,244 @@ export default function Home() {
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
         {/* HERO SECTION */}
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary-hover text-white p-8 md:p-12 shadow-md">
-          <div className="relative z-10 max-w-2xl space-y-4">
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
+        <section className="relative overflow-hidden rounded-2xl bg-primary text-white shadow-md grid grid-cols-1 lg:grid-cols-12">
+          <div className="lg:col-span-7 p-8 md:p-12 flex flex-col justify-center space-y-5 z-10">
+            <span className="self-start text-xs font-bold bg-gold text-slate-900 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm animate-pulse">
+              Accredited Clinical Excellence
+            </span>
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
               {t("homepage.hero_title")}
             </h1>
-            <p className="text-lg text-primary-50/90 font-medium">
-              {t("homepage.hero_subtitle")}
+            <p className="text-sm md:text-base text-white/95 leading-relaxed max-w-lg">
+              Diagnostic accuracy you can trust. Book blood tests, scans, and packages online with professional home sample collection.
             </p>
-            <div className="flex gap-4 pt-2">
-              <Link
-                href="/booking"
-                className="px-6 py-3 font-bold bg-accent hover:bg-accent-hover text-white rounded-md transition-standard shadow-sm interactive-target"
-              >
-                {t("nav.book_test")}
-              </Link>
-              <a
-                href="#packages"
-                className="px-6 py-3 font-semibold bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-md transition-standard interactive-target"
-              >
-                {t("homepage.explore_packages")}
-              </a>
-            </div>
           </div>
-          
-          <div className="absolute right-0 bottom-0 top-0 w-1/2 hidden lg:block pointer-events-none select-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/60 to-transparent z-10"></div>
+          <div className="lg:col-span-5 relative hidden lg:block h-full min-h-[350px]">
+            {/* Blend fade from primary color to transparent over the image */}
+            <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-primary to-transparent z-10"></div>
             <img 
               src="/doctor_and_patient.png" 
               alt="Doctor and Patient" 
-              className="h-full w-full object-cover object-left opacity-40"
+              className="h-full w-full object-cover object-center"
             />
           </div>
         </section>
 
-        {/* QUICK ACTIONS */}
+        {/* ORGAN / HEALTH CONCERN GRID (Apollo-Inspired) */}
+        <section className="space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Shop by Health Concerns</h2>
+            <p className="text-slate-500 text-sm max-w-xl mx-auto">
+              Select a health category below to instantly find the relevant clinical tests and wellness packages.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+            {[
+              { id: "heart", name: "Heart Health", icon: "❤️", bg: "from-red-50 to-red-100/50 border-red-100 hover:border-red-300 text-red-700" },
+              { id: "diabetes", name: "Diabetes Care", icon: "🩸", bg: "from-orange-50 to-orange-100/50 border-orange-100 hover:border-orange-300 text-orange-700" },
+              { id: "thyroid", name: "Thyroid Profile", icon: "🧪", bg: "from-blue-50 to-blue-100/50 border-blue-100 hover:border-blue-300 text-blue-700" },
+              { id: "kidney", name: "Kidney Health", icon: "🧬", bg: "from-indigo-50 to-indigo-100/50 border-indigo-100 hover:border-indigo-300 text-indigo-700" },
+              { id: "liver", name: "Liver Wellness", icon: "🥃", bg: "from-amber-50 to-amber-100/50 border-amber-100 hover:border-amber-300 text-amber-700" },
+              { id: "bone", name: "Bone & Joints", icon: "🦴", bg: "from-slate-50 to-slate-100/50 border-slate-100 hover:border-slate-300 text-slate-700" },
+              { id: "fullbody", name: "Full Body Check", icon: "🩺", bg: "from-green-50 to-green-100/50 border-green-100 hover:border-green-300 text-green-700" }
+            ].map((concern) => (
+              <button
+                key={concern.id}
+                onClick={() => handleConcernClickHomepage(concern.id)}
+                className={`flex flex-col items-center justify-center p-5 rounded-xl border bg-gradient-to-br ${concern.bg} shadow-sm hover:shadow transition-all duration-300 hover:-translate-y-1 cursor-pointer group`}
+              >
+                <span className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">{concern.icon}</span>
+                <span className="text-xs font-bold tracking-tight text-slate-700 text-center">{concern.name}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* DEPARTMENT SECTION & SHOWCASE (Aarthi-Inspired) */}
+        <section className="space-y-6 bg-slate-50/50 p-6 sm:p-8 rounded-2xl border border-slate-100">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Popular Services</h2>
+              <p className="text-xs text-slate-500 mt-1">Select diagnostic category to browse best-selling panels</p>
+            </div>
+            
+            {/* Tab Buttons */}
+            <div className="flex overflow-x-auto whitespace-nowrap max-w-full bg-slate-200/60 p-1 rounded-full text-[11px] sm:text-xs font-bold gap-1 scrollbar-none">
+              <button
+                onClick={() => setActiveDeptTab("blood")}
+                className={`px-4 py-2 rounded-full transition-all duration-200 cursor-pointer ${
+                  activeDeptTab === "blood" ? "bg-primary text-white shadow-sm" : "text-slate-600 hover:text-primary"
+                }`}
+              >
+                🔬 Pathology (Blood/Urine)
+              </button>
+              <button
+                onClick={() => setActiveDeptTab("scans")}
+                className={`px-4 py-2 rounded-full transition-all duration-200 cursor-pointer ${
+                  activeDeptTab === "scans" ? "bg-primary text-white shadow-sm" : "text-slate-600 hover:text-primary"
+                }`}
+              >
+                ⚡ Radiology (Scans/ECG)
+              </button>
+              <button
+                onClick={() => setActiveDeptTab("packages")}
+                className={`px-4 py-2 rounded-full transition-all duration-200 cursor-pointer ${
+                  activeDeptTab === "packages" ? "bg-primary text-white shadow-sm" : "text-slate-600 hover:text-primary"
+                }`}
+              >
+                📦 Wellness Packages
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content Display Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in duration-300">
+            {activeDeptTab === "blood" &&
+              pathologyTests.slice(0, 4).map((test) => (
+                <div key={test.id} className="bg-white border border-slate-200 rounded-xl p-5 hover-scale flex flex-col justify-between min-h-[255px]">
+                  <div className="space-y-2 flex flex-col justify-between h-full">
+                    <div>
+                      <span className="inline-block text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase">
+                        {test.sample_type} Test
+                      </span>
+                      <h3 className="font-bold text-slate-800 text-sm line-clamp-2 leading-tight min-h-[40px] mt-1">
+                        {test.name}
+                      </h3>
+                      <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">
+                        {test.description}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTestDetails(test)}
+                      className="text-[10px] font-bold text-primary hover:text-primary-hover flex items-center gap-1 mt-2 focus:outline-none group/btn transition-colors cursor-pointer self-start"
+                    >
+                      <span>View More & Prep</span>
+                      <span className="transition-transform group-hover/btn:translate-x-0.5">&rarr;</span>
+                    </button>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Price</span>
+                      <span className="font-mono text-sm font-extrabold text-slate-900">₹{test.price}</span>
+                    </div>
+                    <button
+                      onClick={() => handleTestClickHomepage(test)}
+                      className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-[10px] font-bold rounded-md shadow-sm transition-all"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+            {activeDeptTab === "scans" &&
+              radiologyTests.slice(0, 4).map((test) => (
+                <div key={test.id} className="bg-white border border-slate-200 rounded-xl p-5 hover-scale flex flex-col justify-between min-h-[255px]">
+                  <div className="space-y-2 flex flex-col justify-between h-full">
+                    <div>
+                      <span className="inline-block text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase">
+                        {test.sample_type} Scan
+                      </span>
+                      <h3 className="font-bold text-slate-800 text-sm line-clamp-2 leading-tight min-h-[40px] mt-1">
+                        {test.name}
+                      </h3>
+                      <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">
+                        {test.description}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTestDetails(test)}
+                      className="text-[10px] font-bold text-primary hover:text-primary-hover flex items-center gap-1 mt-2 focus:outline-none group/btn transition-colors cursor-pointer self-start"
+                    >
+                      <span>View More & Prep</span>
+                      <span className="transition-transform group-hover/btn:translate-x-0.5">&rarr;</span>
+                    </button>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Price</span>
+                      <span className="font-mono text-sm font-extrabold text-slate-900">₹{test.price}</span>
+                    </div>
+                    <button
+                      onClick={() => handleTestClickHomepage(test)}
+                      className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-[10px] font-bold rounded-md shadow-sm transition-all"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+            {activeDeptTab === "packages" &&
+              packages.slice(0, 4).map((pkg) => (
+                <div key={pkg.id} className="bg-white border border-slate-200 rounded-xl p-5 hover-scale flex flex-col justify-between min-h-[255px]">
+                  <div className="space-y-2 flex flex-col justify-between h-full">
+                    <div>
+                      <div className="flex justify-between items-center">
+                        <span className="inline-block text-[9px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full uppercase">
+                          Popular Bundle
+                        </span>
+                        <span className="text-[9px] text-green-700 font-bold bg-green-50 px-2 py-0.5 rounded-full">
+                          Save {Math.round(((pkg.price - (pkg.discount_price || pkg.price)) / pkg.price) * 100)}%
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-slate-800 text-sm line-clamp-2 leading-tight min-h-[40px] mt-1">
+                        {pkg.name}
+                      </h3>
+                      <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">
+                        {pkg.description}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActivePackageDetails(pkg)}
+                      className="text-[10px] font-bold text-primary hover:text-primary-hover flex items-center gap-1 mt-2 focus:outline-none group/btn transition-colors cursor-pointer self-start"
+                    >
+                      <span>View More & Prep</span>
+                      <span className="transition-transform group-hover/btn:translate-x-0.5">&rarr;</span>
+                    </button>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Offer Price</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-sm font-extrabold text-slate-900">₹{pkg.discount_price || pkg.price}</span>
+                        <span className="font-mono text-[10px] text-slate-400 line-through">₹{pkg.price}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        router.push("/booking?filter=packages");
+                      }}
+                      className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-[10px] font-bold rounded-md shadow-sm transition-all"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+          
+          <div className="text-center pt-2">
+            <Link 
+              href="/booking" 
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-hover hover:underline"
+            >
+              <span>Explore All {tests.length}+ Diagnostic Services</span>
+              <span>&rarr;</span>
+            </Link>
+          </div>
+        </section>
+
+        {/* QUICK ACTION PORTALS */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-standard flex flex-col justify-between">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-standard flex flex-col justify-between">
             <div className="h-40 w-full relative overflow-hidden bg-slate-100">
               <img src="/lab_equipment.png" alt="Discover Tests" className="w-full h-full object-cover" />
             </div>
             <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
               <div className="space-y-2">
                 <h3 className="text-lg font-bold text-slate-800">Discover Tests</h3>
-                <p className="text-sm text-slate-600 text-slate-600/90 leading-relaxed">
+                <p className="text-sm text-slate-600 leading-relaxed">
                   Browse over 200+ clinical and STAT blood tests. Direct access, no account required.
                 </p>
               </div>
@@ -667,14 +1153,14 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-standard flex flex-col justify-between">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-standard flex flex-col justify-between">
             <div className="h-40 w-full relative overflow-hidden bg-slate-100">
-              <img src="/doctor_and_patient.png" alt="Book Home Collection" className="w-full h-full object-cover" />
+              <img src="/home_collection.png" alt="Book Home Collection" className="w-full h-full object-cover" />
             </div>
             <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
               <div className="space-y-2">
                 <h3 className="text-lg font-bold text-slate-800">Book Home Collection</h3>
-                <p className="text-sm text-slate-600 text-slate-600/90 leading-relaxed">
+                <p className="text-sm text-slate-600 leading-relaxed">
                   Schedule blood tests at the comfort of your home. Professional certified phlebotomists.
                 </p>
               </div>
@@ -683,14 +1169,14 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-standard flex flex-col justify-between">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-standard flex flex-col justify-between">
             <div className="h-40 w-full relative overflow-hidden bg-slate-100">
-              <img src="/doctor_and_patient.png" alt="Download Reports" className="w-full h-full object-cover" />
+              <img src="/doctor_consultation.png" alt="Download Reports" className="w-full h-full object-cover" />
             </div>
             <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
               <div className="space-y-2">
                 <h3 className="text-lg font-bold text-slate-800">Download Reports</h3>
-                <p className="text-sm text-slate-600 text-slate-600/90 leading-relaxed">
+                <p className="text-sm text-slate-600 leading-relaxed">
                   Retrieve your clinical PDF reports instantly using secure phone OTP authentication.
                 </p>
               </div>
@@ -704,8 +1190,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* FACILITY SHOWCASE */}
-        <section className="bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
+        {/* FACILITY SHOWCASE WITH PHOTOS */}
+        <section className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm">
           <div className="text-center space-y-3 mb-8">
             <h2 className="text-2xl font-bold text-slate-800">World-Class Diagnostic Facility</h2>
             <p className="text-slate-600 max-w-2xl mx-auto">
@@ -734,6 +1220,72 @@ export default function Home() {
               <h3 className="font-bold text-slate-800">Advanced Equipment</h3>
               <p className="text-sm text-slate-500">State-of-the-art machinery for reliable results.</p>
             </div>
+          </div>
+        </section>
+
+        {/* WHY CHOOSE US / ADVANTAGE SHOWCASE (Aarthi/Apollo Inspired) */}
+        <section className="space-y-6">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-extrabold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">
+              The Vicky Diagnostics Edge
+            </span>
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Why Choose Us?</h2>
+            <p className="text-slate-500 text-sm max-w-xl mx-auto">
+              How we deliver a premium clinical experience compared to traditional laboratories.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                title: "6-12 Hr WhatsApp Reports",
+                desc: "Get your medical PDF directly on WhatsApp within 12 hours. No complex portal log-ins required.",
+                icon: "⚡",
+                weOffer: "Instant WhatsApp delivery & secure cloud link",
+                others: "Must log in to portal or visit centre (24-48 hrs)"
+              },
+              {
+                title: "Cold-Chain Logistics",
+                desc: "Samples are transported in temperature-controlled barcoded boxes to prevent blood cell degradation.",
+                icon: "🧊",
+                weOffer: "Chilled smart boxes with real-time temperature log",
+                others: "Samples carried in open ambient bags by courier"
+              },
+              {
+                title: "Dual MD Pathologist Audit",
+                desc: "Every automated diagnostic result is cross-checked and signed off by a certified MD pathologist.",
+                icon: "🔬",
+                weOffer: "Double verified check by senior physicians",
+                others: "Machine print-outs generated without doctor audit"
+              },
+              {
+                title: "Certified Phlebotomists",
+                desc: "Home collections performed by full-time medical technicians trained in sterile pediatric/geriatric blood draw.",
+                icon: "🏠",
+                weOffer: "Certified expert staff with verification safety code",
+                others: "Third-party gig workers or uncertified local collectors"
+              }
+            ].map((item, idx) => (
+              <div key={idx} className="bg-white border border-slate-200 hover:border-primary/30 rounded-xl p-5 hover-scale flex flex-col justify-between space-y-4 shadow-sm">
+                <div className="space-y-3">
+                  <div className="h-12 w-12 rounded-lg bg-primary/5 flex items-center justify-center text-2xl shadow-inner">
+                    {item.icon}
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-sm leading-snug">{item.title}</h3>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">{item.desc}</p>
+                </div>
+                <div className="pt-3 border-t border-slate-100 space-y-2 text-[10px]">
+                  <div>
+                    <span className="font-extrabold text-emerald-700 block bg-emerald-50 px-2 py-0.5 rounded">✓ Vicky Diagnostics:</span>
+                    <span className="text-slate-600 block pl-2 mt-0.5">{item.weOffer}</span>
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-rose-700 block bg-rose-50 px-2 py-0.5 rounded">✗ Traditional Labs:</span>
+                    <span className="text-slate-400 block pl-2 mt-0.5">{item.others}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -800,12 +1352,11 @@ export default function Home() {
                         </div>
                         <button
                           onClick={() => {
-                            addToCart({ ...pkg, type: "package" });
-                            router.push("/booking");
+                            router.push("/booking?filter=packages");
                           }}
                           className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover text-white font-bold rounded-md shadow-sm transition-standard interactive-target"
                         >
-                          Book Package
+                          Explore Packages
                         </button>
                       </div>
                     </div>
@@ -853,6 +1404,14 @@ export default function Home() {
                 ))}
               </div>
             )}
+            <div className="text-center pt-6">
+              <Link 
+                href="/booking?filter=packages" 
+                className="inline-flex items-center gap-1.5 px-6 py-3 font-bold bg-primary hover:bg-primary-hover text-white text-xs rounded-lg transition-all shadow cursor-pointer uppercase tracking-wider"
+              >
+                Explore All Packages &rarr;
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -945,6 +1504,56 @@ export default function Home() {
                 </button>
               </form>
             </div>
+          </div>
+        </section>
+
+        {/* FAQ ACCORDION SECTION (Aarthi/Apollo inspired) */}
+        <section className="space-y-6 max-w-4xl mx-auto border-t border-slate-100 pt-10">
+          <div className="text-center space-y-2">
+            <span className="text-xs font-extrabold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">
+              Common Queries
+            </span>
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Frequently Asked Questions</h2>
+            <p className="text-slate-500 text-sm">Clear, transparent answers about our clinical operations.</p>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              {
+                q: "Do I need to fast for all blood test bookings?",
+                a: "No, only specific tests (like Fasting Blood Sugar, Lipid Profiles, and Liver Function Tests) require strict fasting of 10-12 hours. Others, like Vitamin D, Thyroid, and CBC, can be done non-fasting. Use our Fasting Calculator above to verify requirements for your specific tests."
+              },
+              {
+                q: "How safe is the Home Collection process?",
+                a: "Extremely safe. Our phlebotomists are full-time certified experts equipped with sterile, single-use, double-vacuum collection tubes and disposable needles. Before the draw, you will receive a unique security code to verify their credentials at your doorstep."
+              },
+              {
+                q: "When and how will I receive my PDF test reports?",
+                a: "Reports are processed in our NABL-accredited laboratory and verified by an MD pathologist. Once approved, the PDF is instantly sent to your WhatsApp number within 6 to 12 hours. You can also view or download them using the OTP Reports Portal on our website."
+              },
+              {
+                q: "What is temperature-controlled cold-chain transport?",
+                a: "After collection, your blood samples are immediately sealed in chilled transport containers equipped with electronic temperature loggers. This guarantees they stay between 2°C and 8°C during transit to prevent cellular degradation before laboratory testing."
+              }
+            ].map((faq, idx) => (
+              <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden transition-all duration-300">
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full px-5 py-4 flex justify-between items-center text-left font-bold text-slate-800 hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer focus:outline-none"
+                >
+                  <span>{faq.q}</span>
+                  <span className="text-lg font-mono text-slate-400">
+                    {openFaq === idx ? "−" : "+"}
+                  </span>
+                </button>
+                {openFaq === idx && (
+                  <div className="px-5 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3 bg-slate-50/50 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </section>
       </main>
@@ -1124,7 +1733,7 @@ export default function Home() {
                               onClick={async () => {
                                 setDownloadingReportId(report.id);
                                 try {
-                                  const res = await fetch(`http://localhost:8000/api/v1/reports/download/${report.id}?phone=${portalPhone}`);
+                                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/download/${report.id}?phone=${portalPhone}`);
                                   if (res.ok) {
                                     const data = await res.json();
                                     alert("Dynamic secure signed URL generated! Access granted for 5 minutes.");
@@ -1463,6 +2072,196 @@ export default function Home() {
           </div>
         );
       })()}
+
+      {/* Collection Mode Selection Modal */}
+      {showModeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 p-6 space-y-6">
+            <div className="text-center space-y-2">
+              <span className="text-2xl">🏥</span>
+              <h3 className="font-extrabold text-slate-800 text-base leading-tight">
+                Select Collection Mode
+              </h3>
+              <p className="text-xs text-slate-500">
+                How would you like to schedule the sample collection for{" "}
+                <strong>
+                  {pendingSelectionItem ? pendingSelectionItem.name : "your selected health concern"}
+                </strong>
+                ?
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={selectHomeCollection}
+                className="w-full p-4 border border-slate-200 hover:border-primary/40 rounded-xl hover:bg-slate-50 text-left transition-all flex items-center gap-3 cursor-pointer group"
+              >
+                <span className="text-xl">🏠</span>
+                <div>
+                  <h4 className="font-bold text-xs text-slate-800 group-hover:text-primary">Home Sample Collection</h4>
+                  <p className="text-[10px] text-slate-400">Certified phlebotomist visits your doorstep.</p>
+                </div>
+              </button>
+
+              <button
+                onClick={selectLabVisit}
+                className="w-full p-4 border border-slate-200 hover:border-primary/40 rounded-xl hover:bg-slate-50 text-left transition-all flex items-center gap-3 cursor-pointer group"
+              >
+                <span className="text-xl">🔬</span>
+                <div>
+                  <h4 className="font-bold text-xs text-slate-800 group-hover:text-primary">Lab Walk-In Visit</h4>
+                  <p className="text-[10px] text-slate-400">Visit our nearest diagnostic clinic center.</p>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex gap-2 justify-end pt-2 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  setShowModeModal(false);
+                  setPendingSelectionItem(null);
+                }}
+                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-md transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Details Modal */}
+      {activeTestDetails && (() => {
+        const details = generateTestDetails(activeTestDetails);
+        if (!details) return null;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+              {/* Header */}
+              <div className="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-200 px-2 py-0.5 rounded-full inline-block mb-1">
+                    {activeTestDetails.sample_type} test
+                  </span>
+                  <h3 className="font-extrabold text-slate-800 text-base leading-tight pr-4">
+                    {activeTestDetails.name}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setActiveTestDetails(null)}
+                  className="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full h-8 w-8 flex items-center justify-center focus:outline-none transition-colors text-sm font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body (Scrollable) */}
+              <div className="p-6 space-y-5 overflow-y-auto flex-1">
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📝</span> Clinical Description
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    {details.description}
+                  </p>
+                </div>
+
+                {/* Preparation Instructions */}
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📋</span> Preparation Required
+                  </h4>
+                  <p className="text-xs text-amber-800 font-medium leading-relaxed bg-amber-50/70 p-3 rounded-lg border border-amber-100">
+                    {details.preparation}
+                  </p>
+                </div>
+
+                {/* Why Take This Test */}
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>💡</span> Why Should You Take This Test?
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                    {details.whyTake}
+                  </p>
+                </div>
+
+                {/* Do's and Don'ts */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  {/* Dos */}
+                  <div className="bg-emerald-50/30 border border-emerald-100 rounded-lg p-3 space-y-2">
+                    <h5 className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wide flex items-center gap-1">
+                      <span className="text-emerald-500">✅</span> Do's Before Test
+                    </h5>
+                    <ul className="list-none space-y-1.5 text-[11px] text-slate-600 pl-1">
+                      {details.dos.map((item, idx) => (
+                        <li key={idx} className="relative pl-3.5 leading-normal">
+                          <span className="absolute left-0 top-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Don'ts */}
+                  <div className="bg-rose-50/30 border border-rose-100 rounded-lg p-3 space-y-2">
+                    <h5 className="text-[11px] font-extrabold text-rose-800 uppercase tracking-wide flex items-center gap-1">
+                      <span className="text-rose-500">❌</span> Don'ts Before Test
+                    </h5>
+                    <ul className="list-none space-y-1.5 text-[11px] text-slate-600 pl-1">
+                      {details.donts.map((item, idx) => (
+                        <li key={idx} className="relative pl-3.5 leading-normal">
+                          <span className="absolute left-0 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex justify-between items-center">
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Test Price</span>
+                  <span className="text-xl font-extrabold text-slate-900">₹{activeTestDetails.price}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setActiveTestDetails(null)}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-md transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTestDetails(null);
+                      handleTestClickHomepage(activeTestDetails);
+                    }}
+                    className="px-5 py-2 text-xs font-bold rounded-md bg-accent hover:bg-accent-hover text-white transition-all shadow-sm cursor-pointer"
+                  >
+                    Book Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Floating Contact Us Widget */}
+      <a
+        href="tel:9398175183"
+        className="fixed bottom-6 right-6 z-50 flex items-center justify-center h-14 w-14 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 cursor-pointer group"
+        title="Contact Us"
+      >
+        <span className="text-2xl">📞</span>
+        <span className="absolute right-16 scale-0 group-hover:scale-100 bg-slate-900 text-white text-[10px] font-bold py-1.5 px-3 rounded shadow-md whitespace-nowrap origin-right transition-all duration-200 font-bold uppercase tracking-wider">
+          Contact Us
+        </span>
+      </a>
     </div>
   );
 }

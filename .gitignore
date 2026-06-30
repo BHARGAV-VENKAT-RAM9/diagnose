@@ -56,3 +56,7 @@ Thumbs.db
 *.pem
 *.key
 *.cert
+
+# Application generated storage
+backend/private_storage/
+

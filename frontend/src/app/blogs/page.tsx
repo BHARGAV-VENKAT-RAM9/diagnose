@@ -19,13 +19,9 @@ export default function PublicBlogs() {
   const [loading, setLoading] = useState(true);
   const [activeArticle, setActiveArticle] = useState<BlogArticle | null>(null);
 
-  useEffect(() => {
-    fetchBlogs();
-  }, []);
-
   const fetchBlogs = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/blogs/");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/blogs/");
       if (!res.ok) throw new Error("API failed");
       const data = await res.json();
       setBlogs(data);
@@ -55,6 +51,10 @@ export default function PublicBlogs() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

@@ -158,6 +158,7 @@ class Booking(Base):
     ), default="PENDING_PAYMENT")
     slot_time = Column(DateTime, nullable=False)
     total_amount = Column(Numeric(10, 2), nullable=False)
+    assigned_phlebotomist = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 

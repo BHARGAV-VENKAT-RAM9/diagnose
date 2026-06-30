@@ -115,15 +115,18 @@ export default function PackageDetailPage() {
 
   const slug = params?.slug as string;
 
-  useEffect(() => {
-    if (slug) {
-      fetchPackageDetails();
+  const findLocalFallback = () => {
+    const fallback = LOCAL_PACKAGES.find(p => p.slug === slug);
+    if (fallback) {
+      setPkg(fallback);
+    } else {
+      setError("Health package not found in our diagnostic directory.");
     }
-  }, [slug]);
+  };
 
   const fetchPackageDetails = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/catalog/packages/${slug}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/packages/${slug}`);
       if (res.ok) {
         const data = await res.json();
         // Extract test ids or tests array
@@ -147,14 +150,11 @@ export default function PackageDetailPage() {
     }
   };
 
-  const findLocalFallback = () => {
-    const fallback = LOCAL_PACKAGES.find(p => p.slug === slug);
-    if (fallback) {
-      setPkg(fallback);
-    } else {
-      setError("Health package not found in our diagnostic directory.");
+  useEffect(() => {
+    if (slug) {
+      fetchPackageDetails();
     }
-  };
+  }, [slug]);
 
   if (loading) {
     return (

@@ -5,6 +5,19 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(default="postgresql://postgres:postgres@localhost:5432/diagnostic_db")
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
     
+    # API Base URL for generating report links in SMS/Emails
+    API_BASE_URL: str = Field(default="http://localhost:8000")
+    
+    # CORS Allowed Origins
+    CORS_ORIGINS: list[str] = Field(default=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002",
+    ])
+    
     # Razorpay Credentials
     RAZORPAY_KEY_ID: str = Field(default="rzp_test_placeholder")
     RAZORPAY_KEY_SECRET: str = Field(default="secret_placeholder")

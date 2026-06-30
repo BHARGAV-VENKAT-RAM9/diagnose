@@ -12,7 +12,8 @@ def seed_db():
         roles = {
             "MAIN_ADMIN": "Full system administrative access",
             "SUPPORT_ADMIN": "Manage bookings, packages, and reports approvals",
-            "LAB_TECHNICIAN": "Upload patient report PDFs"
+            "LAB_TECHNICIAN": "Upload patient report PDFs",
+            "PHLEBOTOMIST": "Field collector for home samples"
         }
         role_objs = {}
         for role_name, desc in roles.items():
@@ -66,6 +67,38 @@ def seed_db():
                 is_active=True
             )
             db.add(owner_user)
+            db.flush()
+
+        # Create Lab Technician User (Credentials: staff / staff)
+        print("Seeding lab technician user...")
+        staff_user = db.query(User).filter(User.username == "staff").first()
+        if not staff_user:
+            staff_user = User(
+                id=uuid.UUID("11111111-1111-1111-1111-111111111111"),
+                email="staff@vickydiagnostics.com",
+                username="staff",
+                hashed_password="1be74d523e89a85c065d089b23fd01860f196ca220aaeabbad3cd01687b7a199", # hashed "staff"
+                full_name="Staff Lab Technician Demo",
+                role_id=role_objs["LAB_TECHNICIAN"].id,
+                is_active=True
+            )
+            db.add(staff_user)
+            db.flush()
+
+        # Create Phlebotomist / Home Collector User (Credentials: collector / collector)
+        print("Seeding phlebotomist collector user...")
+        collector_user = db.query(User).filter(User.username == "collector").first()
+        if not collector_user:
+            collector_user = User(
+                id=uuid.UUID("33333333-3333-3333-3333-333333333333"),
+                email="collector@vickydiagnostics.com",
+                username="collector",
+                hashed_password="927a0ffc68ff47ad7dc8b9089c416c062f3eae45817961e7ffa6dc3ad4f2ef7f", # hashed "collector"
+                full_name="Home Collector Team",
+                role_id=role_objs["PHLEBOTOMIST"].id,
+                is_active=True
+            )
+            db.add(collector_user)
             db.flush()
 
         # 4. Create Categories

@@ -63,6 +63,11 @@ export default function AdminDashboard() {
   const [newUser, setNewUser] = useState({ email: "", username: "", password: "", fullName: "", roleName: "SUPPORT_ADMIN" });
   const [newBranch, setNewBranch] = useState({ name: "", city: "", address: "", phone: "" });
 
+  const [selectedFiles, setSelectedFiles] = useState<{[key: string]: File | null}>({});
+  const [criticalFlags, setCriticalFlags] = useState<{[key: string]: boolean}>({});
+  const [uploadProgress, setUploadProgress] = useState<{[key: string]: string}>({});
+  const [uploadChecksums, setUploadChecksums] = useState<{[key: string]: string}>({});
+
   const MOCK_PAYMENTS = [
     { id: "pay-1", patient_name: "Rajesh Kumar", method: "RAZORPAY", amount: 399, status: "SUCCESS", created_at: "2026-06-20 08:30" },
     { id: "pay-2", patient_name: "Saraswathi Devi", method: "CASH", amount: 599, status: "PENDING", created_at: "2026-06-19 10:15" },
@@ -74,7 +79,8 @@ export default function AdminDashboard() {
   const MOCK_USERS = [
     { id: "u-1", email: "owner@vickydiagnostics.com", username: "owner", full_name: "Main Admin Owner", role: "MAIN_ADMIN", is_active: true },
     { id: "u-2", email: "admin@vickydiagnostics.com", username: "admin", full_name: "Support Admin Team", role: "SUPPORT_ADMIN", is_active: true },
-    { id: "u-3", email: "staff@vickydiagnostics.com", username: "staff", full_name: "Staff Lab Technician Demo", role: "LAB_TECHNICIAN", is_active: true }
+    { id: "u-3", email: "staff@vickydiagnostics.com", username: "staff", full_name: "Staff Lab Technician Demo", role: "LAB_TECHNICIAN", is_active: true },
+    { id: "u-4", email: "collector@vickydiagnostics.com", username: "collector", full_name: "Home Collector Team", role: "PHLEBOTOMIST", is_active: true }
   ];
 
   const MOCK_BRANCHES = [
@@ -82,31 +88,134 @@ export default function AdminDashboard() {
     { id: "br-2", name: "North Branch", city: "Secunderabad", address: "404 Clinic Plaza, Secunderabad", phone: "+919876543211", is_active: true }
   ];
 
-  // Tab views state (expanded to support all 10 views for Main Admin)
-  const [activeTab, setActiveTab] = useState<"pipeline" | "catalog" | "reviews" | "leads" | "blogs" | "finance" | "analytics" | "users" | "branches" | "settings">("pipeline");
+  // Tab views state (expanded to support all 11 views for Main Admin)
+  const [activeTab, setActiveTab] = useState<"pipeline" | "catalog" | "reviews" | "leads" | "blogs" | "finance" | "analytics" | "users" | "branches" | "settings" | "home_collections">("pipeline");
 
+  // Catalog tabs and package states
+  const [catalogSubTab, setCatalogSubTab] = useState<"tests" | "packages">("tests");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const catalogContainerRef = React.useRef<HTMLDivElement>(null);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
+  const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
+  const [packageForm, setPackageForm] = useState({
+    name: "",
+    price: "",
+    discountPrice: "",
+    description: "",
+    testIds: [] as string[]
+  });
 
-  // Authentication check
-  useEffect(() => {
-    const token = localStorage.getItem("admin_token");
-    const userRole = localStorage.getItem("admin_role");
-    const userName = localStorage.getItem("admin_name");
+  const [modalTestSearch, setModalTestSearch] = useState("");
+  const modalTestsContainerRef = React.useRef<HTMLDivElement>(null);
 
-    if (!token || !userRole) {
-      router.push("/login");
-      return;
+  const scrollToCatalogLetter = (letter: string) => {
+    const container = catalogContainerRef.current;
+    if (!container) return;
+
+    let el = document.getElementById(`catalog-letter-group-${letter.toLowerCase()}`);
+    if (!el) {
+      const alphabet = "abcdefghijklmnopqrstuvwxyz";
+      const startIndex = alphabet.indexOf(letter.toLowerCase());
+      for (let i = startIndex + 1; i < alphabet.length; i++) {
+        const nextEl = document.getElementById(`catalog-letter-group-${alphabet[i]}`);
+        if (nextEl) {
+          el = nextEl;
+          break;
+        }
+      }
     }
 
-    setRole(userRole);
-    setName(userName);
-    
-    fetchData();
-  }, [router]);
+    if (el) {
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const relativeTop = elRect.top - containerRect.top + container.scrollTop - 10;
+      container.scrollTo({ top: relativeTop, behavior: "smooth" });
+    }
+  };
+
+  const scrollToModalTestLetter = (letter: string) => {
+    const container = modalTestsContainerRef.current;
+    if (!container) return;
+
+    let el = document.getElementById(`modal-test-letter-group-${letter.toLowerCase()}`);
+    if (!el) {
+      const alphabet = "abcdefghijklmnopqrstuvwxyz";
+      const startIndex = alphabet.indexOf(letter.toLowerCase());
+      for (let i = startIndex + 1; i < alphabet.length; i++) {
+        const nextEl = document.getElementById(`modal-test-letter-group-${alphabet[i]}`);
+        if (nextEl) {
+          el = nextEl;
+          break;
+        }
+      }
+    }
+
+    if (el) {
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const relativeTop = elRect.top - containerRect.top + container.scrollTop - 5;
+      container.scrollTo({ top: relativeTop, behavior: "smooth" });
+    }
+  };
+
+  const fetchAdminBlogs = async () => {
+    try {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/blogs/all");
+      if (res.ok) {
+        const data = await res.json();
+        setAdminBlogs(data);
+      } else {
+        setAdminBlogs(MOCK_ADMIN_BLOGS);
+      }
+    } catch (err) {
+      setAdminBlogs(MOCK_ADMIN_BLOGS);
+    }
+  };
+
+  const playNotificationSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const playBeep = (time: number, freq: number, duration: number) => {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, time);
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(0.3, time + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+        osc.start(time);
+        osc.stop(time + duration);
+      };
+      const now = audioCtx.currentTime;
+      playBeep(now, 880, 0.15);
+      playBeep(now + 0.2, 880, 0.15);
+    } catch (e) {
+      console.warn("Failed to play Web Audio alert:", e);
+    }
+  };
+
+  const sendBrowserNotification = (booking: any) => {
+    try {
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "granted") {
+          new Notification("New Home Collection Booking!", {
+            body: `Patient: ${booking.patient_name}\nSlot: ${booking.slot_time}\nPhone: ${booking.phone}`,
+            icon: "/favicon.ico"
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to show browser notification:", e);
+    }
+  };
 
   const fetchData = async () => {
     try {
       // Fetch KPIs
-      const kpiRes = await fetch("http://localhost:8000/api/v1/admin/kpis");
+      const kpiRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/kpis");
       if (kpiRes.ok) {
         const kpiData = await kpiRes.json();
         setKpis({
@@ -118,35 +227,64 @@ export default function AdminDashboard() {
       }
 
       // Fetch Bookings
-      const bookingsRes = await fetch("http://localhost:8000/api/v1/admin/bookings");
+      const bookingsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/bookings");
       if (bookingsRes.ok) {
         const bookingsData = await bookingsRes.json();
+        
+        // Notification check for MAIN_ADMIN, SUPPORT_ADMIN, PHLEBOTOMIST on new home collections
+        const savedRole = localStorage.getItem("admin_role") || role;
+        const savedName = localStorage.getItem("admin_name") || name;
+        if (savedRole === "MAIN_ADMIN" || savedRole === "SUPPORT_ADMIN" || savedRole === "PHLEBOTOMIST") {
+          if (bookings.length > 0) {
+            const existingIds = new Set(bookings.map(b => b.id));
+            const newHomeBookings = bookingsData.filter((b: any) => 
+              b.booking_type === "HOME_COLLECTION" && 
+              !existingIds.has(b.id) &&
+              (savedRole !== "PHLEBOTOMIST" || b.assigned_phlebotomist === savedName)
+            );
+            
+            if (newHomeBookings.length > 0) {
+              playNotificationSound();
+              newHomeBookings.forEach((hb: any) => {
+                sendBrowserNotification(hb);
+              });
+            }
+          }
+        }
+        
         setBookings(bookingsData);
       }
 
       // Fetch Leads
-      const leadsRes = await fetch("http://localhost:8000/api/v1/admin/corporate-enquiries");
+      const leadsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/corporate-enquiries");
       if (leadsRes.ok) {
         const leadsData = await leadsRes.json();
         setLeads(leadsData);
       }
 
       // Fetch Catalog Tests
-      const testsRes = await fetch("http://localhost:8000/api/v1/catalog/tests");
+      const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/tests");
       if (testsRes.ok) {
         const testsData = await testsRes.json();
         setCatalogTests(testsData);
       }
 
+      // Fetch Catalog Packages
+      const pkgsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/packages");
+      if (pkgsRes.ok) {
+        const pkgsData = await pkgsRes.json();
+        setPackages(pkgsData);
+      }
+
       // Fetch Analytics
-      const analyticsRes = await fetch("http://localhost:8000/api/v1/admin/analytics");
+      const analyticsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/analytics");
       if (analyticsRes.ok) {
         const aData = await analyticsRes.json();
         setAnalyticsData(aData);
       }
 
       // Fetch Pending Reviews
-      const reviewsRes = await fetch("http://localhost:8000/api/v1/admin/reviews/pending");
+      const reviewsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/reviews/pending");
       if (reviewsRes.ok) {
         const reviewsData = await reviewsRes.json();
         const mappedReviews = reviewsData.map((r: any) => ({
@@ -160,7 +298,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch user list
-      const usersRes = await fetch("http://localhost:8000/api/v1/admin/users");
+      const usersRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/users");
       if (usersRes.ok) {
         const usersData = await usersRes.json();
         setUsers(usersData);
@@ -169,7 +307,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch payment list
-      const payRes = await fetch("http://localhost:8000/api/v1/admin/payments");
+      const payRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/payments");
       if (payRes.ok) {
         const payData = await payRes.json();
         setPayments(payData);
@@ -178,7 +316,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch branches list
-      const branchesRes = await fetch("http://localhost:8000/api/v1/admin/branches");
+      const branchesRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/branches");
       if (branchesRes.ok) {
         const branchesData = await branchesRes.json();
         setBranches(branchesData);
@@ -257,19 +395,42 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchAdminBlogs = async () => {
-    try {
-      const res = await fetch("http://localhost:8000/api/v1/blogs/all");
-      if (res.ok) {
-        const data = await res.json();
-        setAdminBlogs(data);
-      } else {
-        setAdminBlogs(MOCK_ADMIN_BLOGS);
-      }
-    } catch (err) {
-      setAdminBlogs(MOCK_ADMIN_BLOGS);
+  // Authentication check
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+    const userRole = localStorage.getItem("admin_role");
+    const userName = localStorage.getItem("admin_name");
+
+    if (!token || !userRole) {
+      router.push("/login");
+      return;
     }
-  };
+
+    setRole(userRole);
+    setName(userName);
+
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+    }
+    
+    fetchData();
+  }, [router]);
+
+  // Polling for live updates (updates state every 5 seconds)
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+    if (!token) return;
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+
 
   const handleCreateBlog = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,7 +442,7 @@ export default function AdminDashboard() {
     setBlogSubmitError("");
     setBlogSubmitMessage("");
     try {
-      const res = await fetch("http://localhost:8000/api/v1/blogs/", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/blogs/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -309,7 +470,7 @@ export default function AdminDashboard() {
 
   const handlePublishBlog = async (blogId: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/blogs/publish/${blogId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/blogs/publish/${blogId}`, {
         method: "POST"
       });
       if (res.ok) {
@@ -328,17 +489,173 @@ export default function AdminDashboard() {
     router.push("/login");
   };
 
-  // Status transitions simulator
   const updateBookingStatus = async (bookingId: string, nextStatus: string) => {
-    // Modify status in state locally for demo responsiveness
-    setBookings(bookings.map(b => b.id === bookingId ? { ...b, status: nextStatus } : b));
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/bookings/${bookingId}/status?status=${nextStatus}`, {
+        method: "POST"
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update status on server.");
+      }
+      setBookings(bookings.map(b => b.id === bookingId ? { ...b, status: nextStatus } : b));
+      fetchData(); // refresh bookings list
+    } catch (err: any) {
+      console.log("Status update error, falling back to local state:", err);
+      setBookings(bookings.map(b => b.id === bookingId ? { ...b, status: nextStatus } : b));
+    }
+  };
+
+  const assignPhlebotomist = async (bookingId: string, collectorName: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/bookings/${bookingId}/assign-phlebotomist?phlebotomist_name=${encodeURIComponent(collectorName)}`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Assignment failed");
+      alert("Collector assigned successfully!");
+      fetchData();
+    } catch (err: any) {
+      alert("Error assigning collector: " + err.message);
+    }
+  };
+
+  const handleSavePackage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        name: packageForm.name,
+        price: parseFloat(packageForm.price) || 0,
+        discount_price: packageForm.discountPrice ? parseFloat(packageForm.discountPrice) : null,
+        description: packageForm.description || null,
+        test_ids: packageForm.testIds
+      };
+
+      const url = editingPackageId 
+        ? `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/packages/${editingPackageId}`
+        : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/packages";
+      
+      const method = editingPackageId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Failed to save package.");
+      }
+
+      alert(editingPackageId ? "Package updated successfully!" : "Package created successfully!");
+      setIsPackageModalOpen(false);
+      fetchData();
+    } catch (err: any) {
+      alert("Error saving package: " + err.message);
+    }
+  };
+
+  const updatePackagePrice = async (packageId: string, newPrice: number) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/packages/${packageId}/price?price=${newPrice}`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Failed to update package price");
+      alert("Package price updated successfully!");
+      fetchData();
+    } catch (err: any) {
+      alert("Error updating package price: " + err.message);
+    }
+  };
+
+  const handleUploadReport = async (bookingId: string) => {
+    const file = selectedFiles[bookingId];
+    if (!file) {
+      alert("Please select a file to upload first.");
+      return;
+    }
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!ext || !['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
+      alert("Invalid format! Only PDF, JPG, JPEG, and PNG files are allowed.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds the 10MB limit.");
+      return;
+    }
+
+    setUploadProgress(prev => ({ ...prev, [bookingId]: "Uploading..." }));
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const criticalValue = criticalFlags[bookingId] || false;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/upload?booking_id=${bookingId}&critical_value=${criticalValue}`, {
+        method: "POST",
+        body: formData
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Upload failed.");
+      }
+
+      const reportData = await res.json();
+      setUploadChecksums(prev => ({ ...prev, [bookingId]: reportData.checksum }));
+      setUploadProgress(prev => ({ ...prev, [bookingId]: "Success" }));
+      
+      alert(`Report successfully uploaded!\nChecksum: ${reportData.checksum}\nSize: ${(reportData.file_size / 1024).toFixed(2)} KB`);
+      fetchData(); // reload bookings
+    } catch (err: any) {
+      setUploadProgress(prev => ({ ...prev, [bookingId]: "Failed" }));
+      alert("Upload failed: " + err.message);
+    }
+  };
+
+  const handleApproveReport = async (reportId: string, bookingId: string) => {
+    try {
+      const adminUserId = localStorage.getItem("admin_user_id") || "00000000-0000-0000-0000-000000000000";
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/approve/${reportId}?admin_user_id=${adminUserId}`, {
+        method: "POST"
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Approval failed.");
+      }
+
+      alert("Report approved and patient notified successfully!");
+      fetchData(); // reload bookings
+    } catch (err: any) {
+      alert("Approval failed: " + err.message);
+    }
+  };
+
+  const handleSendWhatsApp = (booking: any) => {
+    if (!booking.phone || booking.phone === "N/A") {
+      alert("No registered phone number found for this patient.");
+      return;
+    }
+    const cleanPhone = booking.phone.replace(/[^0-9]/g, '');
+    const patientPhone = cleanPhone.startsWith('91') && cleanPhone.length === 12 
+      ? cleanPhone 
+      : cleanPhone.length === 10 
+        ? `91${cleanPhone}` 
+        : cleanPhone;
+
+    const message = encodeURIComponent(
+      `Dear *${booking.patient_name}*,\n\nYour diagnostic lab report for *${booking.tests.join(", ")}* is ready. You can securely access and download it on our portal:\n\n🔗 http://localhost:3000\n\nThank you for choosing Vicky Diagnostics.`
+    );
+    window.open(`https://wa.me/${patientPhone}?text=${message}`, "_blank");
   };
 
   // Review approval action
   const approveReview = async (id: string) => {
     try {
       const adminUserId = localStorage.getItem("admin_user_id") || "00000000-0000-0000-0000-000000000000";
-      const res = await fetch(`http://localhost:8000/api/v1/admin/reviews/approve/${id}?admin_user_id=${adminUserId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/reviews/approve/${id}?admin_user_id=${adminUserId}`, {
         method: "POST"
       });
       if (res.ok) {
@@ -363,7 +680,7 @@ export default function AdminDashboard() {
   // Simulation Handlers
   const handleProcessRefund = async (paymentId: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/payments/${paymentId}/refund`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/payments/${paymentId}/refund`, {
         method: "POST"
       });
       if (res.ok) {
@@ -388,7 +705,7 @@ export default function AdminDashboard() {
     const pStr = prompt("Enter new password:");
     if (!pStr) return;
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/users/${userId}/reset-password`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/users/${userId}/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: pStr })
@@ -405,7 +722,7 @@ export default function AdminDashboard() {
 
   const handleToggleUserStatus = async (userId: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/users/${userId}/toggle-status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/users/${userId}/toggle-status`, {
         method: "POST"
       });
       if (res.ok) {
@@ -424,7 +741,7 @@ export default function AdminDashboard() {
   const handleRegisterUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:8000/api/v1/admin/users", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -452,7 +769,7 @@ export default function AdminDashboard() {
 
   const handleToggleBranchStatus = async (branchId: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/admin/branches/${branchId}/toggle-status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/branches/${branchId}/toggle-status`, {
         method: "POST"
       });
       if (res.ok) {
@@ -471,7 +788,7 @@ export default function AdminDashboard() {
   const handleRegisterBranch = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:8000/api/v1/admin/branches", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/branches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -638,6 +955,14 @@ export default function AdminDashboard() {
                 📋 Bookings Pipeline
               </button>
               <button
+                onClick={() => setActiveTab("home_collections")}
+                className={`w-full text-left py-2 px-3 text-xs font-bold rounded-md transition-standard ${
+                  activeTab === "home_collections" ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                🏠 Home Collections
+              </button>
+              <button
                 onClick={() => setActiveTab("catalog")}
                 className={`w-full text-left py-2 px-3 text-xs font-bold rounded-md transition-standard ${
                   activeTab === "catalog" ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-200"
@@ -765,57 +1090,367 @@ export default function AdminDashboard() {
                           <p className="font-bold text-slate-800">{b.patient_name}</p>
                           <p className="text-[10px] text-slate-500">Test: {b.tests.join(", ")}</p>
                           <button
-                            onClick={() => updateBookingStatus(b.id, "COMPLETED")}
-                            className="w-full mt-2 py-1 bg-accent text-white text-[10px] font-bold rounded hover:bg-accent-hover"
+                            onClick={() => {
+                              if (b.report_id) {
+                                handleApproveReport(b.report_id, b.id);
+                              } else {
+                                updateBookingStatus(b.id, "COMPLETED");
+                              }
+                            }}
+                            className="w-full mt-2 py-1 bg-accent text-white text-[10px] font-bold rounded hover:bg-accent-hover cursor-pointer"
                           >
                             ✓ Approve & Notify patient
                           </button>
-                        </div>
+                          <button
+                            onClick={() => handleSendWhatsApp(b)}
+                            className="w-full mt-1.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            💬 Send on WhatsApp
+                          </button>                        </div>
                       ))}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* TAB 2: TESTS CATALOG CRUD */}
-              {activeTab === "catalog" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Catalog Price & Visibility Management</h3>
-                  <div className="border border-slate-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-xs text-left text-slate-600">
-                      <thead className="bg-slate-100 font-bold text-slate-700 uppercase">
-                        <tr>
-                          <th className="p-3">Test Name</th>
-                          <th className="p-3">Turnaround Time</th>
-                          <th className="p-3">Price (INR)</th>
-                          <th className="p-3">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {catalogTests.map(t => (
-                          <tr key={t.id} className="hover:bg-slate-50">
-                            <td className="p-3 font-bold text-slate-800">{t.name}</td>
-                            <td className="p-3">{t.tat}</td>
-                            <td className="p-3 font-semibold text-slate-900">
-                              ₹{t.price}
-                            </td>
-                            <td className="p-3">
-                              <button
-                                onClick={() => {
-                                  const pStr = prompt(`Set new price for ${t.name}:`, String(t.price));
-                                  if (pStr && !isNaN(Number(pStr))) {
-                                    updateTestPrice(t.id, Number(pStr));
-                                  }
-                                }}
-                                className="text-xs text-primary font-bold hover:underline"
-                              >
-                                Edit Price
-                              </button>
-                            </td>
-                          </tr>
+              {/* TAB 1.5: HOME COLLECTIONS OPERATIONS */}
+              {activeTab === "home_collections" && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="border-b border-slate-200 pb-3">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Home Sample Collections Panel</h3>
+                    <p className="text-[10px] text-slate-400 font-normal">Manage home bookings, assign phlebotomists, and review sample collections.</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* 1. Pending collections */}
+                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-4">
+                      <div className="border-b pb-2 flex justify-between items-center">
+                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Pending Collections</h4>
+                        <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {bookings.filter(b => b.booking_type === "HOME_COLLECTION" && (b.status === "CONFIRMED" || b.status === "PENDING")).length}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                        {bookings.filter(b => b.booking_type === "HOME_COLLECTION" && (b.status === "CONFIRMED" || b.status === "PENDING")).map(b => (
+                          <div key={b.id} className="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-2.5 shadow-sm">
+                            <div>
+                              <p className="font-bold text-slate-800 text-sm">{b.patient_name}</p>
+                              <p className="text-[10px] text-slate-500 font-medium">Slot: {b.slot_time} | Phone: {b.phone}</p>
+                              <p className="text-[10px] text-slate-600 font-medium mt-1">🧪 Tests: {b.tests.join(", ")}</p>
+                              <p className="bg-slate-50 border border-slate-100 rounded p-1.5 text-[10px] text-slate-700 mt-2 font-mono">
+                                📍 {b.home_collection_address ? `${b.home_collection_address.house_number ? `${b.home_collection_address.house_number}, ` : ""}${b.home_collection_address.landmark ? `${b.home_collection_address.landmark}, ` : ""}${b.home_collection_address.area ? `${b.home_collection_address.area} - ` : ""}${b.home_collection_address.pincode || ""}` : "No address details available"}
+                              </p>
+                            </div>
+                            
+                            <div className="pt-2 border-t border-slate-100 flex flex-col gap-1.5">
+                              <label className="text-[9px] font-bold text-slate-500 uppercase">Assign Collector:</label>
+                              <div className="flex gap-1.5">
+                                <select
+                                  defaultValue={b.assigned_phlebotomist || ""}
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      assignPhlebotomist(b.id, e.target.value);
+                                    }
+                                  }}
+                                  className="flex-1 text-[11px] font-bold border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+                                >
+                                  <option value="">-- Select Phlebotomist --</option>
+                                  {users.filter(u => u.role === "PHLEBOTOMIST").map(u => (
+                                    <option key={u.id} value={u.full_name}>{u.full_name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              {b.assigned_phlebotomist && (
+                                <p className="text-[10px] text-primary font-bold">Assigned: {b.assigned_phlebotomist}</p>
+                              )}
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
+                        {bookings.filter(b => b.booking_type === "HOME_COLLECTION" && (b.status === "CONFIRMED" || b.status === "PENDING")).length === 0 && (
+                          <p className="text-xs text-slate-400 py-6 text-center">No pending home collections.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. Collected samples */}
+                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-4">
+                      <div className="border-b pb-2 flex justify-between items-center">
+                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Collected / Processing</h4>
+                        <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {bookings.filter(b => b.booking_type === "HOME_COLLECTION" && (b.status === "SAMPLE_COLLECTED" || b.status === "PROCESSING")).length}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                        {bookings.filter(b => b.booking_type === "HOME_COLLECTION" && (b.status === "SAMPLE_COLLECTED" || b.status === "PROCESSING")).map(b => (
+                          <div key={b.id} className="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-2 shadow-sm">
+                            <div className="flex justify-between items-start">
+                              <p className="font-bold text-slate-800 text-sm">{b.patient_name}</p>
+                              <span className="bg-amber-50 text-amber-800 border border-amber-200 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase">
+                                {b.status}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-medium">Slot: {b.slot_time}</p>
+                            <p className="text-[10px] text-slate-600 font-medium mt-1">🧪 Tests: {b.tests.join(", ")}</p>
+                            <div className="pt-2 border-t border-slate-100 mt-2 text-[10px] text-slate-600">
+                              <p>👤 Collector: <strong className="text-slate-800">{b.assigned_phlebotomist || "Home Collector Team"}</strong></p>
+                            </div>
+                          </div>
+                        ))}
+                        {bookings.filter(b => b.booking_type === "HOME_COLLECTION" && (b.status === "SAMPLE_COLLECTED" || b.status === "PROCESSING")).length === 0 && (
+                          <p className="text-xs text-slate-400 py-6 text-center">No collected samples currently processing.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 3. Completed collections */}
+                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-4">
+                      <div className="border-b pb-2 flex justify-between items-center">
+                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Completed Collections</h4>
+                        <span className="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {bookings.filter(b => b.booking_type === "HOME_COLLECTION" && b.status === "COMPLETED").length}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                        {bookings.filter(b => b.booking_type === "HOME_COLLECTION" && b.status === "COMPLETED").map(b => (
+                          <div key={b.id} className="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-2 shadow-sm">
+                            <div className="flex justify-between items-start">
+                              <p className="font-bold text-slate-800 text-sm">{b.patient_name}</p>
+                              <span className="bg-green-50 text-green-800 border border-green-200 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase">
+                                Completed
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-medium">Slot: {b.slot_time}</p>
+                            <p className="text-[10px] text-slate-600 font-medium mt-1">🧪 Tests: {b.tests.join(", ")}</p>
+                            <div className="pt-2 border-t border-slate-100 mt-2 text-[10px] text-slate-600">
+                              <p>👤 Collector: <strong className="text-slate-800">{b.assigned_phlebotomist || "Home Collector Team"}</strong></p>
+                            </div>
+                          </div>
+                        ))}
+                        {bookings.filter(b => b.booking_type === "HOME_COLLECTION" && b.status === "COMPLETED").length === 0 && (
+                          <p className="text-xs text-slate-400 py-6 text-center">No completed collections today.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: TESTS & PACKAGES CATALOG CRUD */}
+              {activeTab === "catalog" && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-200 pb-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Catalog & Price Management</h3>
+                      <p className="text-[10px] text-slate-400 font-normal">Manage prices for diagnostic tests and bundle health packages.</p>
+                    </div>
+                    
+                    {catalogSubTab === "packages" && (
+                      <button
+                        onClick={() => {
+                          setEditingPackageId(null);
+                          setPackageForm({ name: "", price: "", discountPrice: "", description: "", testIds: [] });
+                          setModalTestSearch("");
+                          setIsPackageModalOpen(true);
+                        }}
+                        className="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary-hover shadow-sm transition-colors cursor-pointer"
+                      >
+                        ➕ New Package
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sub Tab Switcher */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setCatalogSubTab("tests");
+                        setCatalogSearch("");
+                      }}
+                      className={`px-4 py-1.5 text-xs font-bold rounded-lg border transition-standard cursor-pointer ${
+                        catalogSubTab === "tests"
+                          ? "bg-primary text-white border-primary"
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      🩺 Diagnostic Tests
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCatalogSubTab("packages");
+                        setCatalogSearch("");
+                      }}
+                      className={`px-4 py-1.5 text-xs font-bold rounded-lg border transition-standard cursor-pointer ${
+                        catalogSubTab === "packages"
+                          ? "bg-primary text-white border-primary"
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      📦 Health Packages
+                    </button>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">🔍</span>
+                    <input
+                      type="text"
+                      value={catalogSearch}
+                      onChange={(e) => setCatalogSearch(e.target.value)}
+                      placeholder={catalogSubTab === "tests" ? "Search diagnostic tests..." : "Search health packages..."}
+                      className="w-full border border-slate-200 rounded-lg p-2 pl-9 text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-medium"
+                    />
+                  </div>
+
+                  <div className="flex gap-4">
+                    {/* A-Z Index Sidebar */}
+                    <div className="flex flex-col gap-0.5 border-r border-slate-100 pr-2 max-h-[500px] overflow-y-auto select-none">
+                      {["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","#"].map(letter => (
+                        <button
+                          key={letter}
+                          onClick={() => scrollToCatalogLetter(letter)}
+                          className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer"
+                        >
+                          {letter}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Grouped Catalog Items List */}
+                    <div className="flex-1">
+                      {(() => {
+                        const filtered = (catalogSubTab === "tests" ? catalogTests : packages).filter(item =>
+                          item.name.toLowerCase().includes(catalogSearch.toLowerCase())
+                        );
+                        
+                        const sorted = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+                        const groups: { [key: string]: any[] } = {};
+                        sorted.forEach(item => {
+                          const firstLetter = item.name.trim().charAt(0).toUpperCase();
+                          const key = /[A-Z]/.test(firstLetter) ? firstLetter : "#";
+                          if (!groups[key]) groups[key] = [];
+                          groups[key].push(item);
+                        });
+                        
+                        const groupKeys = Object.keys(groups).sort();
+                        if (groupKeys.length === 0) {
+                          return (
+                            <p className="text-xs text-slate-400 py-12 text-center border rounded-lg bg-slate-50">No items match your search.</p>
+                          );
+                        }
+                        
+                        return (
+                          <div ref={catalogContainerRef} className="max-h-[500px] overflow-y-auto space-y-6 pr-2">
+                            {groupKeys.map(letter => (
+                              <div key={letter} id={`catalog-letter-group-${letter.toLowerCase()}`} className="space-y-2">
+                                <h4 className="text-xs font-black text-primary bg-primary/10 px-2 py-1 rounded w-fit uppercase tracking-wider">{letter}</h4>
+                                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+                                  <table className="w-full text-xs text-left text-slate-600">
+                                    <thead className="bg-slate-50 font-bold text-slate-500 uppercase border-b border-slate-200">
+                                      <tr>
+                                        <th className="p-3">Name</th>
+                                        {catalogSubTab === "tests" ? (
+                                          <>
+                                            <th className="p-3">TAT</th>
+                                            <th className="p-3">Price (INR)</th>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <th className="p-3">Included Tests</th>
+                                            <th className="p-3">Price (INR)</th>
+                                            <th className="p-3">Discount Price</th>
+                                          </>
+                                        )}
+                                        <th className="p-3 text-right">Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                      {groups[letter].map(item => (
+                                        <tr key={item.id} className="hover:bg-slate-50">
+                                          <td className="p-3 font-bold text-slate-800">
+                                            {item.name}
+                                            {catalogSubTab === "packages" && item.description && (
+                                              <p className="text-[10px] font-normal text-slate-400 mt-0.5">{item.description}</p>
+                                            )}
+                                          </td>
+                                          {catalogSubTab === "tests" ? (
+                                            <>
+                                              <td className="p-3">{item.tat}</td>
+                                              <td className="p-3 font-semibold text-slate-900">₹{item.price}</td>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <td className="p-3">
+                                                <span className="inline-block bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded text-[9px] mb-1">
+                                                  {item.tests?.length || 0} tests
+                                                </span>
+                                                <div className="text-[10px] text-slate-500 font-normal">
+                                                  {item.tests?.map((t: any) => t.name).join(", ")}
+                                                </div>
+                                              </td>
+                                              <td className="p-3 font-semibold text-slate-900 font-mono">₹{item.price}</td>
+                                              <td className="p-3 font-semibold text-green-700 font-mono">{item.discount_price ? `₹${item.discount_price}` : "N/A"}</td>
+                                            </>
+                                          )}
+                                          <td className="p-3 text-right space-x-3">
+                                            {catalogSubTab === "tests" ? (
+                                              <button
+                                                onClick={() => {
+                                                  const pStr = prompt(`Set new price for ${item.name}:`, String(item.price));
+                                                  if (pStr && !isNaN(Number(pStr))) {
+                                                    updateTestPrice(item.id, Number(pStr));
+                                                  }
+                                                }}
+                                                className="text-xs text-primary font-bold hover:underline cursor-pointer"
+                                              >
+                                                Edit Price
+                                              </button>
+                                            ) : (
+                                              <>
+                                                <button
+                                                  onClick={() => {
+                                                    setEditingPackageId(item.id);
+                                                    setPackageForm({
+                                                      name: item.name,
+                                                      price: String(item.price),
+                                                      discountPrice: item.discount_price ? String(item.discount_price) : "",
+                                                      description: item.description || "",
+                                                      testIds: item.tests ? item.tests.map((t: any) => t.id) : []
+                                                    });
+                                                    setModalTestSearch("");
+                                                    setIsPackageModalOpen(true);
+                                                  }}
+                                                  className="text-xs text-primary font-bold hover:underline cursor-pointer"
+                                                >
+                                                  Edit
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    const pStr = prompt(`Set new price for ${item.name}:`, String(item.price));
+                                                    if (pStr && !isNaN(Number(pStr))) {
+                                                      updatePackagePrice(item.id, Number(pStr));
+                                                    }
+                                                  }}
+                                                  className="text-xs text-slate-500 hover:text-slate-800 font-bold hover:underline cursor-pointer"
+                                                >
+                                                  Edit Price
+                                                </button>
+                                              </>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1175,7 +1810,7 @@ export default function AdminDashboard() {
                   <div className="flex justify-between items-center border-b pb-3">
                     <div>
                       <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">User Account Management</h3>
-                      <p className="text-xs text-slate-500 font-normal">Configure portal logins for Support Admins and Laboratory Technicians</p>
+                      <p className="text-xs text-slate-500 font-normal">Configure portal logins for Support Admins, Laboratory Technicians, and Phlebotomists / Home Collectors</p>
                     </div>
                   </div>
 
@@ -1192,7 +1827,8 @@ export default function AdminDashboard() {
                               <div className="flex gap-2 items-center">
                                 <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded ${
                                   u.role === "MAIN_ADMIN" ? "bg-purple-100 text-purple-800" :
-                                  u.role === "SUPPORT_ADMIN" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
+                                  u.role === "SUPPORT_ADMIN" ? "bg-blue-100 text-blue-800" :
+                                  u.role === "PHLEBOTOMIST" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
                                 }`}>
                                   {u.role}
                                 </span>
@@ -1283,6 +1919,7 @@ export default function AdminDashboard() {
                           >
                             <option value="SUPPORT_ADMIN">Support Admin</option>
                             <option value="LAB_TECHNICIAN">Lab Technician</option>
+                            <option value="PHLEBOTOMIST">Home Collector / Phlebotomist</option>
                           </select>
                         </div>
                         <button
@@ -1511,17 +2148,62 @@ export default function AdminDashboard() {
                         <p className="text-[10px] text-slate-400">Scheduled: {b.slot_time}</p>
                       </div>
 
-                      {/* Mock upload button */}
-                      <div className="border border-dashed border-slate-300 rounded bg-white p-3 text-center space-y-2">
-                        <span className="text-xs text-slate-500 block">report_{b.id}.pdf</span>
+                      {/* Real upload dropzone and controls */}
+                      <div className="border border-slate-200 rounded-lg p-3 bg-white space-y-3">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase text-left">Select Report File</label>
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null;
+                              setSelectedFiles(prev => ({ ...prev, [b.id]: file }));
+                              setUploadProgress(prev => ({ ...prev, [b.id]: "" }));
+                              setUploadChecksums(prev => ({ ...prev, [b.id]: "" }));
+                            }}
+                            className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+                          />
+                          {selectedFiles[b.id] && (
+                            <p className="text-[10px] text-slate-500 text-left">
+                              Selected: <strong>{selectedFiles[b.id]?.name}</strong> ({(selectedFiles[b.id]!.size / 1024).toFixed(1)} KB)
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1">
+                          <input
+                            type="checkbox"
+                            id={`critical-${b.id}`}
+                            checked={criticalFlags[b.id] || false}
+                            onChange={(e) => setCriticalFlags(prev => ({ ...prev, [b.id]: e.target.checked }))}
+                            className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                          />
+                          <label htmlFor={`critical-${b.id}`} className="text-[10px] font-semibold text-red-600 uppercase cursor-pointer text-left">
+                            ⚠️ Critical Report / Panic Value Flag
+                          </label>
+                        </div>
+
+                        {uploadProgress[b.id] && (
+                          <div className={`p-2 rounded text-[10px] font-semibold text-left ${
+                            uploadProgress[b.id] === "Uploading..." ? "bg-blue-50 text-blue-700 border border-blue-200" :
+                            uploadProgress[b.id] === "Success" ? "bg-green-50 text-green-700 border border-green-200" :
+                            "bg-red-50 text-red-700 border border-red-200"
+                          }`}>
+                            Status: {uploadProgress[b.id]}
+                            {uploadChecksums[b.id] && (
+                              <div className="mt-1 font-mono text-[9px] break-all">
+                                Checksum: {uploadChecksums[b.id]}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <button
-                          onClick={() => {
-                            updateBookingStatus(b.id, "REPORT_UPLOADED");
-                            alert("Report PDF successfully uploaded. Forwarded to admin approval queue.");
-                          }}
-                          className="px-4 py-1.5 bg-primary text-white text-[10px] font-bold rounded hover:bg-primary-hover shadow-sm"
+                          onClick={() => handleUploadReport(b.id)}
+                          disabled={!selectedFiles[b.id] || uploadProgress[b.id] === "Uploading..."}
+                          className="w-full py-1.5 bg-primary text-white text-[10px] font-bold rounded hover:bg-primary-hover shadow-sm disabled:opacity-50 transition-colors"
                         >
-                          Simulate PDF Upload
+                          {uploadProgress[b.id] === "Uploading..." ? "Uploading File..." : "Commit Report Upload"}
                         </button>
                       </div>
                     </div>
@@ -1552,7 +2234,230 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {role === "PHLEBOTOMIST" && (
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
+            <div className="border-b pb-3 flex justify-between items-center">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                  Phlebotomist Home Collector Portal
+                </h3>
+                <p className="text-[10px] text-slate-400 font-normal">Manage your assigned home collection bookings and update sample collection status.</p>
+              </div>
+              <span className="px-3 py-1 bg-amber-100 text-amber-800 font-bold text-xs rounded-full">
+                Collector Account
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-bold text-slate-700 text-xs uppercase tracking-wider">My Assigned Collections</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {bookings.filter(b => b.assigned_phlebotomist === name && (b.status === "CONFIRMED" || b.status === "PENDING" || b.status === "SAMPLE_COLLECTED")).map(b => (
+                  <div key={b.id} className="border border-slate-200 rounded-lg p-4 space-y-3 bg-slate-50 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <p className="font-bold text-xs text-slate-800">{b.patient_name}</p>
+                        <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${
+                          b.status === "SAMPLE_COLLECTED" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                        }`}>
+                          {b.status}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-600 space-y-1">
+                        <p>📞 Phone: <strong>{b.phone}</strong></p>
+                        <p>⏰ Slot: {b.slot_time}</p>
+                        <p>🧪 Tests: {b.tests.join(", ")}</p>
+                        <p className="bg-white border border-slate-200 rounded p-2 text-slate-800 mt-2 font-semibold">
+                          📍 Address: {b.home_collection_address ? `${b.home_collection_address.house_number ? `${b.home_collection_address.house_number}, ` : ""}${b.home_collection_address.landmark ? `${b.home_collection_address.landmark}, ` : ""}${b.home_collection_address.area ? `${b.home_collection_address.area} - ` : ""}${b.home_collection_address.pincode || ""}` : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t mt-2">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          b.home_collection_address ? `${b.home_collection_address.house_number || ""} ${b.home_collection_address.landmark || ""} ${b.home_collection_address.area || ""} ${b.home_collection_address.pincode || ""}` : ""
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold rounded text-center"
+                      >
+                        🗺️ Directions
+                      </a>
+                      {b.status !== "SAMPLE_COLLECTED" && (
+                        <button
+                          onClick={() => updateBookingStatus(b.id, "SAMPLE_COLLECTED")}
+                          className="flex-1 py-1.5 bg-primary hover:bg-primary-hover text-white text-[10px] font-bold rounded cursor-pointer"
+                        >
+                          ✓ Sample Collected
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {bookings.filter(b => b.assigned_phlebotomist === name && (b.status === "CONFIRMED" || b.status === "PENDING" || b.status === "SAMPLE_COLLECTED")).length === 0 && (
+                  <p className="text-xs text-slate-400 py-6 text-center col-span-2">No active home collection bookings assigned to you.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
+
+      {/* Interactive Package Creator / Editor Modal */}
+      {isPackageModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl max-w-lg w-full p-6 space-y-5 relative max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setIsPackageModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-extrabold text-sm cursor-pointer"
+            >
+              ✕
+            </button>
+            <div>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
+                {editingPackageId ? "✏️ Edit Health Package" : "➕ Create New Health Package"}
+              </h3>
+              <p className="text-[10px] text-slate-400 font-normal">Configure package details, pricing, and associate diagnostic tests.</p>
+            </div>
+            
+            <form onSubmit={handleSavePackage} className="space-y-4 text-xs font-semibold">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Package Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Full Body Basic Package"
+                  value={packageForm.name}
+                  onChange={(e) => setPackageForm({ ...packageForm, name: e.target.value })}
+                  className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Price (INR) *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="Regular Price"
+                    value={packageForm.price}
+                    onChange={(e) => setPackageForm({ ...packageForm, price: e.target.value })}
+                    className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-medium font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Discount Price (INR)</label>
+                  <input
+                    type="number"
+                    placeholder="Offer Price"
+                    value={packageForm.discountPrice}
+                    onChange={(e) => setPackageForm({ ...packageForm, discountPrice: e.target.value })}
+                    className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-medium font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Description</label>
+                <textarea
+                  placeholder="Describe package benefits, preparation info..."
+                  value={packageForm.description}
+                  onChange={(e) => setPackageForm({ ...packageForm, description: e.target.value })}
+                  className="w-full border border-slate-200 rounded-lg p-2.5 h-20 resize-none focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-medium"
+                ></textarea>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Select Diagnostic Tests *</label>
+                <p className="text-[9px] text-slate-400 font-normal mb-2">Check the tests to associate with this package bundle.</p>
+                
+                {/* Modal Test Filter Input */}
+                <div className="relative mb-2">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-400 text-[10px]">🔍</span>
+                  <input
+                    type="text"
+                    value={modalTestSearch}
+                    onChange={(e) => setModalTestSearch(e.target.value)}
+                    placeholder="Filter tests by name..."
+                    className="w-full border border-slate-200 rounded-lg p-1.5 pl-7 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary font-medium"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  {/* Modal A-Z letters column */}
+                  <div className="flex flex-col gap-0.5 border-r border-slate-100 pr-1 max-h-40 overflow-y-auto select-none">
+                    {["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","#"].map(letter => (
+                      <button
+                        key={letter}
+                        type="button"
+                        onClick={() => scrollToModalTestLetter(letter)}
+                        className="w-4.5 h-4.5 rounded flex items-center justify-center text-[8px] font-bold text-slate-450 hover:bg-slate-200 hover:text-slate-700 transition-colors cursor-pointer"
+                      >
+                        {letter}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {/* Grouped Tests Checklist */}
+                  <div ref={modalTestsContainerRef} className="flex-1 border border-slate-200 rounded-lg p-2.5 max-h-40 overflow-y-auto space-y-3 bg-slate-50 font-normal text-slate-700">
+                    {(() => {
+                      const filtered = catalogTests.filter(t => 
+                        t.name.toLowerCase().includes(modalTestSearch.toLowerCase())
+                      );
+                      const sorted = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+                      
+                      const groups: { [key: string]: any[] } = {};
+                      sorted.forEach(t => {
+                        const firstLetter = t.name.trim().charAt(0).toUpperCase();
+                        const key = /[A-Z]/.test(firstLetter) ? firstLetter : "#";
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(t);
+                      });
+                      
+                      const groupKeys = Object.keys(groups).sort();
+                      if (groupKeys.length === 0) {
+                        return <p className="text-[10px] text-slate-400 py-4 text-center">No tests match your filter.</p>;
+                      }
+                      
+                      return groupKeys.map(letter => (
+                        <div key={letter} id={`modal-test-letter-group-${letter.toLowerCase()}`} className="space-y-1.5">
+                          <h5 className="text-[9px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded w-fit uppercase tracking-wider">{letter}</h5>
+                          <div className="space-y-1.5 pl-1 flex flex-col">
+                            {groups[letter].map(t => (
+                              <label key={t.id} className="flex items-start gap-2 cursor-pointer hover:text-slate-900 transition-colors text-[11px] leading-tight select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={packageForm.testIds.includes(t.id)}
+                                  onChange={(e) => {
+                                    const updated = e.target.checked
+                                      ? [...packageForm.testIds, t.id]
+                                      : packageForm.testIds.filter(id => id !== t.id);
+                                    setPackageForm({ ...packageForm, testIds: updated });
+                                  }}
+                                  className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5 mt-0.5"
+                                />
+                                <span>{t.name} <span className="font-semibold text-slate-500 font-mono">(₹{t.price})</span></span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary-hover shadow-sm transition-colors cursor-pointer"
+              >
+                {editingPackageId ? "Save Health Package" : "Create Health Package"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

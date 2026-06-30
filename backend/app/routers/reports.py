@@ -1,6 +1,10 @@
 import random
 import time
+import os
+import hmac
+import hashlib
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
@@ -148,6 +152,20 @@ def get_patient_reports(phone: str, db: Session = Depends(get_db)):
     return report_list
 
 
+SECRET_KEY = settings.RAZORPAY_KEY_SECRET.encode()
+
+def generate_file_signature(report_id: str, phone: str, expires: int) -> str:
+    payload = f"{report_id}:{phone}:{expires}"
+    return hmac.new(SECRET_KEY, payload.encode(), hashlib.sha256).hexdigest()
+
+def verify_file_signature(report_id: str, phone: str, expires: int, signature: str) -> bool:
+    if int(time.time()) > expires:
+        return False
+    payload = f"{report_id}:{phone}:{expires}"
+    expected = hmac.new(SECRET_KEY, payload.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
 @router.get("/download/{report_id}")
 def download_report(report_id: UUID, phone: str, db: Session = Depends(get_db)):
     """
@@ -167,12 +185,45 @@ def download_report(report_id: UUID, phone: str, db: Session = Depends(get_db)):
     if report.status != "APPROVED":
         raise HTTPException(status_code=403, detail="Report is pending administrative review.")
 
-    # Dynamic short-lived signed URL generation (FS-05)
     # Expiry 300 seconds (5 minutes)
     expires_at = int(time.time()) + 300
-    signed_url = f"https://storage.googleapis.com/{settings.STORAGE_BUCKET_NAME}/{report.file_path}?GoogleAccessId=service-acc@gcp.com&Expires={expires_at}&Signature=mock_signature_hex"
+    signature = generate_file_signature(str(report_id), phone, expires_at)
+    
+    signed_url = f"{settings.API_BASE_URL}/api/v1/reports/file/{report_id}?phone={phone}&expires={expires_at}&signature={signature}"
     
     return {"download_url": signed_url}
+
+
+@router.get("/file/{report_id}")
+def serve_report_file(
+    report_id: UUID, 
+    phone: str, 
+    expires: int, 
+    signature: str, 
+    db: Session = Depends(get_db)
+):
+    """Serves the raw report file securely after signature verification."""
+    # 1. Verify signature
+    if not verify_file_signature(str(report_id), phone, expires, signature):
+        raise HTTPException(status_code=403, detail="Invalid or expired signature.")
+
+    # 2. Fetch report
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found.")
+
+    # 3. Double-check phone alignment
+    booking = db.query(Booking).filter(Booking.id == report.booking_id).first()
+    patient = db.query(Patient).filter(Patient.id == booking.patient_id).first()
+    if patient.phone != phone:
+        raise HTTPException(status_code=403, detail="Access denied.")
+
+    # 4. Resolve file path in private storage
+    file_path = os.path.join("private_storage", str(report.booking_id), os.path.basename(report.file_path))
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Report file not found on disk.")
+            
+    return FileResponse(file_path, filename=os.path.basename(report.file_path))
 
 
 @router.post("/upload", response_model=ReportUploadResponse, status_code=status.HTTP_201_CREATED)
@@ -184,15 +235,34 @@ def upload_report(
 ):
     """
     Enables Lab Technician to upload a report.
-    Checks file types (PDF-only rule).
+    Checks file types (PDF, JPG, JPEG, PNG).
     """
     # Verify file extension
-    if not file.filename.endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF reports are allowed.")
+    ext = file.filename.split('.')[-1].lower() if '.' in file.filename else ''
+    if ext not in ['pdf', 'jpg', 'jpeg', 'png']:
+        raise HTTPException(status_code=400, detail="Only PDF, JPG, JPEG, and PNG reports are allowed.")
 
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found.")
+
+    # Read file content
+    content = file.file.read()
+    file_size = len(content)
+    
+    # Enforce file size limit (10MB)
+    if file_size > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds the 10MB limit.")
+
+    # Calculate SHA-256 checksum for integrity validation
+    checksum = hashlib.sha256(content).hexdigest()
+
+    # Save to private storage
+    private_dir = os.path.join("private_storage", str(booking_id))
+    os.makedirs(private_dir, exist_ok=True)
+    dest_path = os.path.join(private_dir, file.filename)
+    with open(dest_path, "wb") as f:
+        f.write(content)
 
     # Storage path
     relative_path = f"reports/{booking_id}/{file.filename}"
@@ -221,12 +291,16 @@ def upload_report(
         action="CREATE",
         entity_name="reports",
         entity_id=report.id,
-        details=f"Uploaded report PDF {file.filename} for booking {booking_id}"
+        details=f"Uploaded report {file.filename} (Size: {file_size} bytes, Checksum: {checksum}) for booking {booking_id}"
     )
     db.add(audit)
 
     db.commit()
     db.refresh(report)
+
+    # Populate dynamic fields for response schema
+    report.checksum = checksum
+    report.file_size = file_size
 
     return report
 

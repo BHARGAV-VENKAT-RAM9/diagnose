@@ -21,15 +21,18 @@ export default function TestDetailPage() {
 
   const slug = params?.slug as string;
 
-  useEffect(() => {
-    if (slug) {
-      fetchTestDetails();
+  const findLocalFallback = () => {
+    const fallback = LOCAL_TESTS.find(t => t.slug === slug);
+    if (fallback) {
+      setTest(fallback);
+    } else {
+      setError("Clinical test not found in our diagnostic directory.");
     }
-  }, [slug]);
+  };
 
   const fetchTestDetails = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/catalog/tests/${slug}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/tests/${slug}`);
       if (res.ok) {
         const data = await res.json();
         setTest({
@@ -54,14 +57,11 @@ export default function TestDetailPage() {
     }
   };
 
-  const findLocalFallback = () => {
-    const fallback = LOCAL_TESTS.find(t => t.slug === slug);
-    if (fallback) {
-      setTest(fallback);
-    } else {
-      setError("Clinical test not found in our diagnostic directory.");
+  useEffect(() => {
+    if (slug) {
+      fetchTestDetails();
     }
-  };
+  }, [slug]);
 
   if (loading) {
     return (

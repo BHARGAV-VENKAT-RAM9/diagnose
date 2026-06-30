@@ -74,6 +74,14 @@ const LOCAL_PACKAGES = [
   }
 ];
 
+const PHLEBOTOMIST_CONTACTS: { [key: string]: string } = {
+  "John Doe": "+91 99887 76655",
+  "Jane Smith": "+91 98765 43210",
+  "Vikram Rathore": "+91 91234 56789",
+  "Home Collector Team": "+91 93981 75183",
+  "collector": "+91 93981 75183"
+};
+
 const generateTestDetails = (test: any) => {
   if (!test) return null;
   const name = (test.name || "").toUpperCase();
@@ -226,6 +234,28 @@ function BookingFlowContent() {
   const [bookingStep, setBookingStep] = useState(0); // 0: Cart, 1: Details, 2: Slots, 3: Payment, 4: Success
   const [activeTestDetails, setActiveTestDetails] = useState<any>(null);
 
+  const nonHomeCollectionItems = React.useMemo(() => {
+    return cart.filter(item => {
+      if (item.type === "package") {
+        if (Array.isArray(item.tests)) {
+          const pkgTests = tests.filter(t => item.tests.includes(t.id) || item.tests.includes(t.slug));
+          return pkgTests.some(t => {
+            const homeAvailable = t.home_collection_available !== undefined
+              ? t.home_collection_available
+              : (t.home_collection !== undefined ? t.home_collection : true);
+            return !homeAvailable;
+          });
+        }
+        return false;
+      }
+      const homeAvailable = item.home_collection_available !== undefined
+        ? item.home_collection_available
+        : (item.home_collection !== undefined ? item.home_collection : true);
+      return !homeAvailable;
+    });
+  }, [cart, tests]);
+
+
   // Browser back gesture & SPA routing synchronization states
   const isPopStateRef = useRef(false);
 
@@ -280,6 +310,71 @@ function BookingFlowContent() {
     area: "",
     pincode: ""
   });
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const handleUseCurrentLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      return;
+    }
+    setGpsLoading(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=en`,
+            {
+              headers: {
+                "User-Agent": "VickyDiagnostics/1.0"
+              }
+            }
+          );
+          if (!response.ok) throw new Error("Failed to reverse-geocode coordinates.");
+          const data = await response.json();
+          if (data && data.address) {
+            const addr = data.address;
+            const house = addr.house_number || addr.road || addr.neighbourhood || "";
+            const areaName = addr.suburb || addr.city || addr.town || addr.village || addr.county || "";
+            const postcodeVal = addr.postcode || "";
+            
+            setAddressDetails(prev => ({
+              ...prev,
+              houseNumber: house || prev.houseNumber,
+              area: areaName || prev.area,
+              pincode: postcodeVal || prev.pincode,
+              landmark: prev.landmark ? `${prev.landmark} [GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}]` : `[GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`
+            }));
+          } else {
+            setAddressDetails(prev => ({
+              ...prev,
+              landmark: prev.landmark ? `${prev.landmark} [GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}]` : `[GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`
+            }));
+          }
+        } catch (err: any) {
+          console.error(err);
+          setAddressDetails(prev => ({
+            ...prev,
+            landmark: prev.landmark ? `${prev.landmark} [GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}]` : `[GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`
+          }));
+        } finally {
+          setGpsLoading(false);
+        }
+      },
+      (error) => {
+        console.error(error);
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Automatically request location access when user enters Home Collection Address step
+  useEffect(() => {
+    if (bookingStep === 1 && bookingType === "HOME_COLLECTION") {
+      handleUseCurrentLocation();
+    }
+  }, [bookingStep, bookingType]);
   
   // Search and Filter States for Step 1
   const [testSearch, setTestSearch] = useState("");
@@ -357,6 +452,15 @@ function BookingFlowContent() {
   // Handle URL query parameters to preset booking type
   const searchParams = useSearchParams();
   const initialType = searchParams.get("type");
+  const searchParamQuery = searchParams.get("search");
+  const concernParam = searchParams.get("concern");
+  const filterParam = searchParams.get("filter");
+
+  useEffect(() => {
+    if (filterParam === "packages") {
+      setActiveFilter("PACKAGES");
+    }
+  }, [filterParam]);
 
   useEffect(() => {
     if (initialType === "HOME_COLLECTION") {
@@ -366,9 +470,33 @@ function BookingFlowContent() {
     }
   }, [initialType, setBookingType]);
 
+  useEffect(() => {
+    if (searchParamQuery) {
+      setTestSearch(searchParamQuery);
+    }
+  }, [searchParamQuery]);
+
+  useEffect(() => {
+    if (concernParam) {
+      const concernMap: { [key: string]: string } = {
+        heart: "lipid",
+        diabetes: "glucose",
+        thyroid: "thyroid",
+        kidney: "creatinine",
+        liver: "lft",
+        bone: "vitamin d",
+        fullbody: "checkup"
+      };
+      const keyword = concernMap[concernParam.toLowerCase()];
+      if (keyword) {
+        setTestSearch(keyword);
+      }
+    }
+  }, [concernParam]);
+
   const fetchCatalog = async () => {
     try {
-      const testsRes = await fetch("http://localhost:8000/api/v1/catalog/tests");
+      const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/tests");
       if (testsRes.ok) {
         const testsData = await testsRes.json();
         if (testsData && testsData.length > 0) {
@@ -382,7 +510,7 @@ function BookingFlowContent() {
           setTests(formatted);
         }
       }
-      const pkgsRes = await fetch("http://localhost:8000/api/v1/catalog/packages");
+      const pkgsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/packages");
       if (pkgsRes.ok) {
         const pkgsData = await pkgsRes.json();
         if (pkgsData && pkgsData.length > 0) {
@@ -421,10 +549,34 @@ function BookingFlowContent() {
       result = result.filter(t => t.sample_type === "Radiology");
     }
 
-    // Filter by Search Query
+    // Filter by Search Query with Fuzzy Synonym Matching (Apollo/Aarthi style)
     if (testSearch.trim() !== "") {
-      const q = testSearch.toLowerCase().trim();
-      result = result.filter(t => t.name.toLowerCase().includes(q));
+      const query = testSearch.toLowerCase().trim();
+      
+      // Define synonyms list
+      const synonymGroups = [
+        ["sugar", "glucose", "hba1c", "fbs", "ppbs", "insulin", "diabetes"],
+        ["kidney", "renal", "creatinine", "urea", "uric", "rft", "kft"],
+        ["liver", "lft", "bilirubin", "sgot", "sgpt", "albumin"],
+        ["heart", "lipid", "cholesterol", "triglyceride", "ecg", "cardiac", "hdl", "ldl", "crp"],
+        ["bone", "vitamin d", "calcium", "joints", "ra factor", "rheumatoid"],
+        ["vitamin", "vit", "cholecalciferol", "b12", "folate", "d3"]
+      ];
+
+      // Find if query matches any synonym group
+      const matchingGroup = synonymGroups.find(group => group.includes(query));
+      
+      result = result.filter(t => {
+        const testName = t.name.toLowerCase();
+        
+        // If query is part of a synonym group, match any term in that group
+        if (matchingGroup) {
+          return matchingGroup.some(term => testName.includes(term));
+        }
+        
+        // Default standard match
+        return testName.includes(query);
+      });
     }
 
     // Sort Alphabetically
@@ -432,6 +584,15 @@ function BookingFlowContent() {
 
     return result;
   }, [tests, activeFilter, testSearch]);
+
+  const filteredPackages = useMemo(() => {
+    let result = [...packages];
+    if (testSearch.trim() !== "") {
+      const q = testSearch.toLowerCase().trim();
+      result = result.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+    }
+    return result;
+  }, [packages, testSearch]);
 
   const getTestIds = () => {
     const ids: string[] = [];
@@ -516,7 +677,7 @@ function BookingFlowContent() {
         payment_method: paymentMethod
       };
 
-      const res = await fetch("http://localhost:8000/api/v1/bookings/", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -539,7 +700,7 @@ function BookingFlowContent() {
         // If order ID is mock or Razorpay SDK is unavailable, simulate successful payment locally
         if (!orderId || orderId.startsWith("order_mock_") || !(window as any).Razorpay) {
           try {
-            const verifyRes = await fetch("http://localhost:8000/api/v1/bookings/verify-payment", {
+            const verifyRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -569,7 +730,7 @@ function BookingFlowContent() {
           order_id: orderId,
           handler: async function (response: any) {
             try {
-              const verifyRes = await fetch("http://localhost:8000/api/v1/bookings/verify-payment", {
+              const verifyRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/verify-payment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -613,7 +774,7 @@ function BookingFlowContent() {
   const fetchSlots = async (dateStr: string) => {
     try {
       const branchId = tests[0]?.branch_id || "da4ff965-f9be-4ff2-8d7b-cbff246e7f8e";
-      const res = await fetch("http://localhost:8000/api/v1/bookings/check-slots", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/check-slots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -771,7 +932,7 @@ function BookingFlowContent() {
                     />
                   </div>
                   <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                    {["ALL", "BLOOD", "URINE", "RADIOLOGY"].map((filter) => (
+                    {["ALL", "BLOOD", "URINE", "RADIOLOGY", "PACKAGES"].map((filter) => (
                       <button
                         key={filter}
                         onClick={() => setActiveFilter(filter)}
@@ -785,13 +946,16 @@ function BookingFlowContent() {
                         {filter === "BLOOD" && "Blood"}
                         {filter === "URINE" && "Urine/Stool"}
                         {filter === "RADIOLOGY" && "Radiology & Scans"}
+                        {filter === "PACKAGES" && "Wellness Packages"}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="text-xs text-slate-500 font-medium">
-                  {filteredTests.length} tests available
+                  {activeFilter === "PACKAGES" 
+                    ? `${filteredPackages.length} packages available` 
+                    : `${filteredTests.length} tests available`}
                 </div>
 
                 {/* A-Z INDEX SIDEBAR GRID CONTAINER */}
@@ -801,72 +965,124 @@ function BookingFlowContent() {
                     className="flex-1 min-w-0 max-h-[70vh] overflow-y-auto pr-4 border border-slate-100 rounded-lg p-3 bg-slate-50/10"
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {(() => {
-                        let lastLetter = "";
-                        return filteredTests.map(test => {
-                          const firstChar = test.name.charAt(0).toUpperCase();
-                          const firstLetter = (firstChar >= 'A' && firstChar <= 'Z') ? firstChar : '#';
-                          const showHeader = firstLetter !== lastLetter;
-                          if (showHeader) {
-                            lastLetter = firstLetter;
-                          }
-                          const inCart = cart.find(c => c.id === test.id);
+                      {activeFilter === "PACKAGES" ? (
+                        filteredPackages.map(pkg => {
+                          const inCart = cart.find(c => c.id === pkg.id);
                           return (
-                            <React.Fragment key={test.id}>
-                              {showHeader && (
-                                <div
-                                  id={`letter-group-${firstLetter.toLowerCase()}`}
-                                  className="col-span-full border-b border-slate-200 pb-1 pt-4 text-lg font-extrabold text-primary flex items-center scroll-mt-2"
-                                >
-                                  <span className="bg-primary/10 text-primary h-8 w-8 rounded-full flex items-center justify-center mr-2 text-sm font-black">
-                                    {firstLetter}
+                            <div key={pkg.id} className="border border-slate-200 rounded-lg p-4 flex flex-col justify-between hover:border-primary hover:shadow-md transition-all duration-300 bg-white">
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider bg-amber-50 px-2 py-0.5 rounded-full inline-block">
+                                    Wellness Package
                                   </span>
-                                  {firstLetter}
+                                  {pkg.discount_price && (
+                                    <span className="text-[9px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
+                                      Save {Math.round(((pkg.price - pkg.discount_price) / pkg.price) * 100)}%
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              <div className="border border-slate-200 rounded-lg p-4 flex flex-col justify-between hover:border-primary hover:shadow-md transition-all duration-300 bg-white">
-                                <div className="space-y-1.5">
-                                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-full inline-block">
-                                    {test.sample_type} test
-                                  </span>
-                                  <h4 className="font-bold text-slate-800 text-sm hover:text-primary transition-standard leading-tight line-clamp-2 min-h-[2.5rem]">
-                                    {test.name}
-                                  </h4>
-                                  <button
-                                    onClick={() => setActiveTestDetails(test)}
-                                    className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 mt-2 focus:outline-none group/btn transition-colors cursor-pointer"
-                                  >
-                                    <span>View More & Prep</span>
-                                    <span className="transition-transform group-hover/btn:translate-x-0.5">&rarr;</span>
-                                  </button>
-                                </div>
-                                <div className="pt-3 flex justify-between items-center border-t border-slate-100 mt-4">
-                                  <span className="text-sm font-bold text-slate-900">₹{test.price}</span>
-                                  <button
-                                    onClick={() => inCart ? removeFromCart(test.id) : addToCart({ ...test, type: "test" })}
-                                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-standard interactive-target cursor-pointer ${
-                                      inCart ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-primary text-white hover:bg-primary-hover"
-                                    }`}
-                                  >
-                                    {inCart ? "Remove" : "+ Add"}
-                                  </button>
-                                </div>
+                                <h4 className="font-bold text-slate-800 text-sm hover:text-primary transition-standard leading-tight line-clamp-2 min-h-[2.5rem]">
+                                  {pkg.name}
+                                </h4>
+                                <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">
+                                  {pkg.description || "Comprehensive checkup containing selected diagnostic parameters at a bundle discount."}
+                                </p>
                               </div>
-                            </React.Fragment>
+                              <div className="pt-3 flex justify-between items-center border-t border-slate-100 mt-4">
+                                <div className="flex items-baseline gap-1">
+                                  <span className="text-sm font-bold text-slate-900">₹{pkg.discount_price || pkg.price}</span>
+                                  {pkg.discount_price && (
+                                    <span className="text-[10px] text-slate-400 line-through">₹{pkg.price}</span>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => inCart ? removeFromCart(pkg.id) : addToCart({ ...pkg, type: "package" })}
+                                  className={`px-3 py-1.5 text-xs font-bold rounded-md transition-standard interactive-target cursor-pointer ${
+                                    inCart ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-primary text-white hover:bg-primary-hover"
+                                  }`}
+                                >
+                                  {inCart ? "Remove" : "+ Add"}
+                                </button>
+                              </div>
+                            </div>
                           );
-                        });
-                      })()}
+                        })
+                      ) : (
+                        (() => {
+                          let lastLetter = "";
+                          return filteredTests.map(test => {
+                            const firstChar = test.name.charAt(0).toUpperCase();
+                            const firstLetter = (firstChar >= 'A' && firstChar <= 'Z') ? firstChar : '#';
+                            const showHeader = (firstLetter !== lastLetter) && (firstLetter !== '#');
+                            if (showHeader) {
+                              lastLetter = firstLetter;
+                            }
+                            const inCart = cart.find(c => c.id === test.id);
+                            return (
+                              <React.Fragment key={test.id}>
+                                {showHeader && (
+                                  <div
+                                    id={`letter-group-${firstLetter.toLowerCase()}`}
+                                    className="col-span-full border-b border-slate-200 pb-1 pt-4 text-lg font-extrabold text-primary flex items-center scroll-mt-2"
+                                  >
+                                    <span className="bg-primary/10 text-primary h-8 w-8 rounded-full flex items-center justify-center mr-2 text-sm font-black">
+                                      {firstLetter}
+                                    </span>
+                                    {firstLetter}
+                                  </div>
+                                )}
+                                <div className="border border-slate-200 rounded-lg p-4 flex flex-col justify-between hover:border-primary hover:shadow-md transition-all duration-300 bg-white">
+                                  <div className="space-y-1.5">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-full inline-block">
+                                      {test.sample_type} test
+                                    </span>
+                                    <h4 className="font-bold text-slate-800 text-sm hover:text-primary transition-standard leading-tight line-clamp-2 min-h-[2.5rem]">
+                                      {test.name}
+                                    </h4>
+                                    <button
+                                      onClick={() => setActiveTestDetails(test)}
+                                      className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 mt-2 focus:outline-none group/btn transition-colors cursor-pointer"
+                                    >
+                                      <span>View More & Prep</span>
+                                      <span className="transition-transform group-hover/btn:translate-x-0.5">&rarr;</span>
+                                    </button>
+                                  </div>
+                                  <div className="pt-3 flex justify-between items-center border-t border-slate-100 mt-4">
+                                    <span className="text-sm font-bold text-slate-900">₹{test.price}</span>
+                                    <button
+                                      onClick={() => inCart ? removeFromCart(test.id) : addToCart({ ...test, type: "test" })}
+                                      className={`px-3 py-1.5 text-xs font-bold rounded-md transition-standard interactive-target cursor-pointer ${
+                                        inCart ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-primary text-white hover:bg-primary-hover"
+                                      }`}
+                                    >
+                                      {inCart ? "Remove" : "+ Add"}
+                                    </button>
+                                  </div>
+                                </div>
+                              </React.Fragment>
+                            );
+                          });
+                        })()
+                      )}
                     </div>
 
-                    {filteredTests.length === 0 && (
-                      <div className="text-center py-12 text-slate-500 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
-                        No tests found matching your search query.
-                      </div>
+                    {activeFilter === "PACKAGES" ? (
+                      filteredPackages.length === 0 && (
+                        <div className="text-center col-span-full py-12 text-slate-500 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
+                          No packages found matching your search query.
+                        </div>
+                      )
+                    ) : (
+                      filteredTests.length === 0 && (
+                        <div className="text-center col-span-full py-12 text-slate-500 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
+                          No tests found matching your search query.
+                        </div>
+                      )
                     )}
                   </div>
 
                   {/* A-Z ALPHABET INDEX SIDEBAR */}
-                  <div className="flex flex-col items-center justify-between select-none shrink-0 z-40 bg-white border border-slate-200 rounded-md py-2 shadow-sm fixed right-1 top-24 h-[65vh] w-7 text-[9px] font-black text-primary sm:sticky sm:top-0 sm:h-[70vh] sm:w-8 sm:text-[11px] sm:border-0 sm:border-l sm:border-slate-200 sm:bg-white sm:shadow-none sm:rounded-none sm:py-3 sm:px-2">
+                  <div className="hidden sm:flex flex-col items-center justify-between select-none shrink-0 z-40 sm:sticky sm:top-0 sm:h-[70vh] sm:w-8 sm:text-[11px] sm:border-0 sm:border-l sm:border-slate-200 sm:bg-white sm:shadow-none sm:rounded-none sm:py-3 sm:px-2">
                     {Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map(letter => (
                       <button
                         key={letter}
@@ -888,14 +1104,50 @@ function BookingFlowContent() {
               <div className="space-y-6">
                 <div className="border-b border-slate-100 pb-4">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{t("booking.collection_type")}</h4>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 rounded-md text-sm font-extrabold select-none">
-                    {bookingType === "HOME_COLLECTION" ? (
-                      <>🏠 {t("booking.home_collection")}</>
-                    ) : (
-                      <>🏥 {t("booking.lab_visit")}</>
-                    )}
+                  <div className="inline-flex rounded-md shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setBookingType("LAB_VISIT")}
+                      className={`px-4 py-2.5 text-xs font-bold rounded-l-md border transition-all cursor-pointer ${
+                        bookingType === "LAB_VISIT"
+                          ? "bg-primary border-primary text-white"
+                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      🏥 {t("booking.lab_visit")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBookingType("HOME_COLLECTION")}
+                      className={`px-4 py-2.5 text-xs font-bold rounded-r-md border-y border-r transition-all cursor-pointer ${
+                        bookingType === "HOME_COLLECTION"
+                          ? "bg-primary border-primary text-white"
+                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      🏠 {t("booking.home_collection")}
+                    </button>
                   </div>
                 </div>
+
+                {bookingType === "HOME_COLLECTION" && nonHomeCollectionItems.length > 0 && (
+                  <div className="p-4 bg-red-50 border border-red-200 text-red-850 text-xs font-bold rounded-lg space-y-2">
+                    <p className="flex items-center gap-2 text-sm text-red-900 font-extrabold">
+                      <span>⚠️</span> Home Collection Unavailable
+                    </p>
+                    <p className="font-normal text-red-700 leading-relaxed">
+                      The following test(s) in your cart cannot be collected at home:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {nonHomeCollectionItems.map(item => (
+                        <li key={item.id} className="font-bold">{item.name}</li>
+                      ))}
+                    </ul>
+                    <p className="font-normal text-red-700 leading-relaxed pt-1">
+                      Please switch the collection type to **🏥 Lab Visit** or remove these tests from your cart to proceed.
+                    </p>
+                  </div>
+                )}
 
                 <h3 className="font-bold text-slate-800">Enter Patient Details</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -944,7 +1196,30 @@ function BookingFlowContent() {
 
                 {bookingType === "HOME_COLLECTION" && (
                   <div className="border border-slate-200 rounded-lg p-4 bg-slate-50/50 space-y-4">
-                    <h4 className="text-sm font-bold text-slate-800">Home Collection Address</h4>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <h4 className="text-sm font-bold text-slate-800">Home Collection Address</h4>
+                      <button
+                        type="button"
+                        onClick={handleUseCurrentLocation}
+                        disabled={gpsLoading}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-primary hover:bg-primary-hover text-white rounded-md shadow-sm transition-all focus:outline-none disabled:opacity-50 cursor-pointer self-start"
+                      >
+                        {gpsLoading ? (
+                          <>
+                            <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            <span>Fetching Location...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>📍</span>
+                            <span>Use Current Location</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-slate-700">{t("booking.house_number")} *</label>
@@ -1009,6 +1284,10 @@ function BookingFlowContent() {
                         return;
                       }
                       if (bookingType === "HOME_COLLECTION") {
+                        if (nonHomeCollectionItems.length > 0) {
+                          alert("Home Collection is not available for some tests in your cart. Please switch to 'Lab Visit' or remove those tests.");
+                          return;
+                        }
                         if (!addressDetails.houseNumber || !addressDetails.area || !addressDetails.pincode) {
                           alert("Please fill in all required address fields for home collection.");
                           return;
@@ -1319,7 +1598,7 @@ function BookingFlowContent() {
                             payment_method: "RAZORPAY"
                           };
 
-                          const res = await fetch("http://localhost:8000/api/v1/bookings/", {
+                          const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify(payload)
@@ -1343,7 +1622,7 @@ function BookingFlowContent() {
                           setCreatedBooking(bookingData);
 
                           // Force mock verification call
-                          const verifyRes = await fetch("http://localhost:8000/api/v1/bookings/verify-payment", {
+                          const verifyRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/verify-payment", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
@@ -1436,14 +1715,36 @@ function BookingFlowContent() {
                     {createdBooking && (
                       <p><strong>Booking ID:</strong> <span className="font-mono text-[11px] bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{createdBooking.id}</span></p>
                     )}
+                    {bookingType === "HOME_COLLECTION" && (
+                      <>
+                        <p><strong>Booking Type:</strong> Home Sample Collection</p>
+                        <p><strong>Collector:</strong> {createdBooking?.assigned_phlebotomist || "Home Collector Team"} ({PHLEBOTOMIST_CONTACTS[createdBooking?.assigned_phlebotomist || "Home Collector Team"] || "+91 93981 75183"})</p>
+                      </>
+                    )}
                     <p><strong>Service:</strong> {cart.map(c => c.name).join(", ")}</p>
                     <p><strong>Date:</strong> {selectedDate}</p>
                     <p><strong>Time:</strong> {selectedSlot}</p>
-                    <p className="text-[10px] text-slate-500 mt-2">
+                    <p className="text-[10px] text-slate-505 mt-2">
                       Tracking links: <span className="underline cursor-pointer">View Booking</span> | <span className="underline cursor-pointer">Get Directions</span> | <a href="tel:9398175183" className="underline font-bold text-primary">Call Center (+91 93981 75183)</a>
                     </p>
                   </div>
                 </div>
+
+                {bookingType === "HOME_COLLECTION" && (
+                  <div className="max-w-md mx-auto border border-blue-200 bg-blue-50/50 rounded-xl p-4 text-left space-y-2 shadow-sm animate-in fade-in duration-300">
+                    <div className="flex items-center gap-2 border-b border-blue-100 pb-2">
+                      <span className="text-lg">🛵</span>
+                      <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wider">Assigned Phlebotomist Info</h4>
+                    </div>
+                    <div className="text-xs text-slate-700 space-y-1.5 font-semibold">
+                      <p><strong>Name:</strong> <span className="text-slate-900">{createdBooking?.assigned_phlebotomist || "Home Collector Team"}</span></p>
+                      <p><strong>Contact Number:</strong> <a href={`tel:${(PHLEBOTOMIST_CONTACTS[createdBooking?.assigned_phlebotomist || "Home Collector Team"] || "+91 93981 75183").replace(/\s+/g, "")}`} className="text-primary font-black hover:underline">{PHLEBOTOMIST_CONTACTS[createdBooking?.assigned_phlebotomist || "Home Collector Team"] || "+91 93981 75183"}</a></p>
+                      <p className="text-[10px] text-slate-550 font-normal leading-relaxed">
+                        Please contact your phlebotomist for collection arrival coordination and timing updates.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="pt-4">
                   <button

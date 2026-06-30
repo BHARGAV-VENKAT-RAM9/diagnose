@@ -29,7 +29,7 @@ export default function AdminLogin() {
 
     try {
       // Authenticate with the backend API
-      const res = await fetch("http://localhost:8000/api/v1/auth/login", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
@@ -67,8 +67,14 @@ export default function AdminLogin() {
         localStorage.setItem("admin_name", "Staff Lab Technician Demo");
         localStorage.setItem("admin_user_id", "11111111-1111-1111-1111-111111111111");
         router.push("/dashboard");
+      } else if (username === "collector" && password === "collector") {
+        localStorage.setItem("admin_token", "mock_collector_token_sspi_checksum");
+        localStorage.setItem("admin_role", "PHLEBOTOMIST");
+        localStorage.setItem("admin_name", "Home Collector Team");
+        localStorage.setItem("admin_user_id", "33333333-3333-3333-3333-333333333333");
+        router.push("/dashboard");
       } else {
-        setError(err.message || "Network error. Try 'owner' / 'owner', 'admin' / 'admin' or 'staff' / 'staff'.");
+        setError(err.message || "Network error. Try 'owner' / 'owner', 'admin' / 'admin', 'staff' / 'staff', or 'collector' / 'collector'.");
       }
     } finally {
       setLoading(false);
@@ -136,6 +142,7 @@ export default function AdminLogin() {
               <li>For **Main Admin (Owner)**: Use username <strong className="font-mono bg-blue-100/50 px-1 py-0.5 rounded">owner</strong> and password <strong className="font-mono bg-blue-100/50 px-1 py-0.5 rounded">owner</strong>.</li>
               <li>For **Support Admin**: Use username <strong className="font-mono bg-blue-100/50 px-1 py-0.5 rounded">admin</strong> and password <strong className="font-mono bg-blue-100/50 px-1 py-0.5 rounded">admin</strong>.</li>
               <li>For **Lab Staff / Technicians**: Use username <strong className="font-mono bg-blue-100/50 px-1 py-0.5 rounded">staff</strong> and password <strong className="font-mono bg-blue-100/50 px-1 py-0.5 rounded">staff</strong>.</li>
+              <li>For **Home Collector (Phlebotomist)**: Use username <strong className="font-mono bg-blue-100/50 px-1 py-0.5 rounded">collector</strong> and password <strong className="font-mono bg-blue-100/50 px-1 py-0.5 rounded">collector</strong>.</li>
             </ul>
           </div>
         </div>

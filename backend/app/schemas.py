@@ -80,6 +80,7 @@ class BookingResponse(BaseModel):
     tests: List[TestResponse] = []
     razorpay_order_id: Optional[str] = None
     razorpay_key_id: Optional[str] = None
+    assigned_phlebotomist: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -103,6 +104,8 @@ class ReportUploadResponse(BaseModel):
     critical_value_flag: bool
     status: str
     created_at: datetime
+    checksum: Optional[str] = None
+    file_size: Optional[int] = None
 
     class Config:
         from_attributes = True
