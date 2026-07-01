@@ -81,6 +81,10 @@ def parse_and_seed():
         db_tests_count = 0
         local_fallback_tests = []
 
+        # Optimize: Fetch all existing tests at once to avoid N database queries
+        all_db_tests = {t_obj.name: t_obj for t_obj in db.query(Test).all()}
+
+        import uuid
         for idx, t in enumerate(tests):
             name = t["name"]
             price = t["price"]
@@ -114,8 +118,7 @@ def parse_and_seed():
             tat = "24 Hours" if category == "Radiology" else "12 Hours"
             prep = "Fasting recommended." if "FASTING" in name_upper or "GLUCOSE" in name_upper or "LIPID" in name_upper else "No special preparation required."
 
-            db_t = db.query(Test).filter(Test.name == name).first()
-            import uuid
+            db_t = all_db_tests.get(name)
             
             if not db_t:
                 test_id = uuid.uuid5(uuid.NAMESPACE_DNS, slug)
@@ -135,8 +138,9 @@ def parse_and_seed():
                     home_collection_notes="Drink plenty of water before collection." if home_collection else None
                 )
                 db.add(db_t)
-                db.flush()
                 db_tests_count += 1
+                # Add to local map so subsequent duplicates in loop are handled
+                all_db_tests[name] = db_t
             
             resolved_id = str(db_t.id)
 
