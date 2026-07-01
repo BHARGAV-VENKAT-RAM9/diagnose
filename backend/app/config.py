@@ -36,6 +36,13 @@ class Settings(BaseSettings):
             # Fallback to comma-separated values
             return [item.strip() for item in v.split(",") if item.strip()]
         return v
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def parse_database_url(cls, v):
+        if isinstance(v, str) and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
     
     # Razorpay Credentials
     RAZORPAY_KEY_ID: str = Field(default="rzp_test_placeholder")
