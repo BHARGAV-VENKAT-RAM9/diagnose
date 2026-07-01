@@ -380,6 +380,7 @@ export default function Home() {
 
   // Dynamic catalog state
   const [tests, setTests] = useState<any[]>(LOCAL_TESTS);
+  const [patientToken, setPatientToken] = useState<string | null>(null);
   const [packages, setPackages] = useState<any[]>(LOCAL_PACKAGES);
   const [adminBookings, setAdminBookings] = useState<any[]>([
     {
@@ -813,8 +814,15 @@ export default function Home() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        const token = data.patient_token;
+        setPatientToken(token);
         setOtpVerified(true);
-        const reportsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/reports/patient-reports?phone=${portalPhone}`);
+        const reportsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/reports/patient-reports?phone=${portalPhone}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
         if (reportsRes.ok) {
           const reportsData = await reportsRes.json();
           const formatted = reportsData.map((r: any) => ({
@@ -1733,7 +1741,11 @@ export default function Home() {
                               onClick={async () => {
                                 setDownloadingReportId(report.id);
                                 try {
-                                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/reports/download/${report.id}?phone=${portalPhone}`);
+                                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/reports/download/${report.id}?phone=${portalPhone}`, {
+                                    headers: {
+                                      "Authorization": `Bearer ${patientToken}`
+                                    }
+                                  });
                                   if (res.ok) {
                                     const data = await res.json();
                                     alert("Dynamic secure signed URL generated! Access granted for 5 minutes.");

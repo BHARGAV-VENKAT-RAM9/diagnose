@@ -5,6 +5,7 @@ import hmac
 import hashlib
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
@@ -14,8 +15,11 @@ from app.database import get_db
 from app.config import settings
 from app.models import Booking, Patient, Report, AuditLog
 from app.schemas import ReportUploadResponse, ReportOTPVerify
+from app.routers.auth import get_admin_user, get_lab_tech_user, verify_patient_token, create_patient_token, rate_limiter
 
 router = APIRouter(prefix="/reports", tags=["reports"])
+
+security = HTTPBearer()
 
 # Memory-based simple OTP storage for mockup (in prod, use Redis)
 mock_otp_store = {}
@@ -32,7 +36,7 @@ def check_rate_limit(phone: str) -> bool:
     return False
 
 
-@router.post("/request-otp")
+@router.post("/request-otp", dependencies=[Depends(rate_limiter(limit=3, window=60))])
 def request_otp(phone: str, db: Session = Depends(get_db)):
     """
     Sends an OTP via MSG91 WhatsApp mock to retrieve patient reports.
@@ -68,7 +72,7 @@ def request_otp(phone: str, db: Session = Depends(get_db)):
     return {"message": "OTP sent successfully.", "otp": otp}
 
 
-@router.post("/verify-otp")
+@router.post("/verify-otp", dependencies=[Depends(rate_limiter(limit=5, window=60))])
 def verify_otp(payload: ReportOTPVerify, db: Session = Depends(get_db)):
     """Verifies OTP and authorizes access to reports."""
     phone = payload.phone
@@ -111,16 +115,36 @@ def verify_otp(payload: ReportOTPVerify, db: Session = Depends(get_db)):
     # Clean OTP store on success
     del mock_otp_store[phone]
 
+    # Generate patient token
+    patient_token = create_patient_token(phone)
+
     # Fetch patient bookings and reports
     patient = db.query(Patient).filter(Patient.phone == phone).first()
-    bookings = db.query(Booking).filter(Booking.patient_id == patient.id).all()
     
-    return {"status": "success", "message": "OTP Verified.", "patient_name": patient.full_name, "phone": phone}
+    return {
+        "status": "success", 
+        "message": "OTP Verified.", 
+        "patient_name": patient.full_name, 
+        "phone": phone,
+        "patient_token": patient_token
+    }
 
 
 @router.get("/patient-reports")
-def get_patient_reports(phone: str, db: Session = Depends(get_db)):
-    """Retrieves list of reports for a verified phone number."""
+def get_patient_reports(
+    phone: str, 
+    db: Session = Depends(get_db), 
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Retrieves list of reports for a verified phone number. Enforces patient token verification."""
+    token = credentials.credentials
+    authorized_phone = verify_patient_token(token)
+    if not authorized_phone or authorized_phone != phone:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Access denied. Please complete OTP verification first."
+        )
+
     patient = db.query(Patient).filter(Patient.phone == phone).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient record not found.")
@@ -128,7 +152,7 @@ def get_patient_reports(phone: str, db: Session = Depends(get_db)):
     bookings = db.query(Booking).filter(
         Booking.patient_id == patient.id,
         Booking.status.in_(["REPORT_UPLOADED", "REPORT_APPROVED", "COMPLETED", "PROCESSING"])
-    ).order_name = Booking.created_at.desc() # Newer bookings first
+    ).order_by(Booking.created_at.desc()).all() # Newer bookings first
     
     report_list = []
     for booking in bookings:
@@ -150,10 +174,24 @@ def get_patient_reports(phone: str, db: Session = Depends(get_db)):
 
 
 @router.get("/download/{report_id}")
-def download_report(report_id: UUID, phone: str, db: Session = Depends(get_db)):
+def download_report(
+    report_id: UUID, 
+    phone: str, 
+    db: Session = Depends(get_db), 
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
     """
     Generates a secure, short-lived signed URL for report download (FS-05).
+    Enforces ownership check using patient token.
     """
+    token = credentials.credentials
+    authorized_phone = verify_patient_token(token)
+    if not authorized_phone or authorized_phone != phone:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Access denied. Please complete OTP verification first."
+        )
+
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report file not found.")
@@ -181,15 +219,29 @@ def upload_report(
     booking_id: UUID, 
     critical_value: bool = False,
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_lab_tech_user)
 ):
     """
     Enables Lab Technician to upload a report.
     Checks file types (PDF-only rule).
+    Enforces maximum upload size of 5MB.
     """
-    # Verify file extension
+    # 1. Enforce strict PDF verification
     if not file.filename.endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF reports are allowed.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only PDF reports are allowed.")
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file type. Only PDF is allowed.")
+
+    # 2. Limit file upload size to 5MB to prevent DoS disk space exhaustion
+    max_file_size = 5 * 1024 * 1024
+    content = file.file.read(max_file_size + 1)
+    if len(content) > max_file_size:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds the maximum allowed limit of 5MB."
+        )
+    file.file.seek(0) # Reset file pointer after reading
 
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
@@ -222,7 +274,8 @@ def upload_report(
         action="CREATE",
         entity_name="reports",
         entity_id=report.id,
-        details=f"Uploaded report PDF {file.filename} for booking {booking_id}"
+        user_id=UUID(current_user["user_id"]),
+        details=f"Uploaded report PDF {file.filename} for booking {booking_id} by user {current_user['user_id']}"
     )
     db.add(audit)
 
@@ -233,7 +286,12 @@ def upload_report(
 
 
 @router.post("/approve/{report_id}")
-def approve_report(report_id: UUID, admin_user_id: UUID, db: Session = Depends(get_db)):
+def approve_report(
+    report_id: UUID, 
+    admin_user_id: UUID, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_admin_user)
+):
     """
     Enables Support Admin to approve a report.
     Approving triggers booking status COMPLETED and mock MSG91 Template 4 (Report Ready).
@@ -254,7 +312,7 @@ def approve_report(report_id: UUID, admin_user_id: UUID, db: Session = Depends(g
         entity_name="reports",
         entity_id=report.id,
         user_id=admin_user_id,
-        details=f"Approved report for booking {booking.id}"
+        details=f"Approved report for booking {booking.id} by admin {current_user['user_id']}"
     )
     db.add(audit)
 

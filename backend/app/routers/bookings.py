@@ -13,6 +13,7 @@ from app.config import settings
 from app.models import Booking, Patient, Test, Payment, HomeCollectionAddress
 from app.schemas import BookingCreate, BookingResponse, SlotAvailabilityRequest, SlotAvailabilityResponse, PaymentVerify
 from app.sms import send_booking_confirm_sms
+from app.routers.auth import rate_limiter
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -107,7 +108,7 @@ def check_slots(payload: SlotAvailabilityRequest, db: Session = Depends(get_db))
     return slots
 
 
-@router.post("/", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=BookingResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limiter(limit=5, window=60))])
 def create_booking(payload: BookingCreate, db: Session = Depends(get_db)):
     """
     Creates a new booking.

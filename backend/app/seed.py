@@ -45,7 +45,7 @@ def seed_db():
                 id=uuid.UUID("00000000-0000-0000-0000-000000000000"),
                 email="admin@vickydiagnostics.com",
                 username="admin",
-                hashed_password="680d1a5beb19cad8817643b53177e7663d45502771cf11115dba539331d84393", # hashed "admin"
+                hashed_password="4febbd0854472d56098d26cb57288fc5:86ce26bc3be74a18ac6ae4452991ab89ce40f24bb6b8b0195d48d41e0aa9aa1d", # PBKDF2 "admin"
                 full_name="Support Admin Team",
                 role_id=role_objs["SUPPORT_ADMIN"].id,
                 is_active=True
@@ -61,7 +61,7 @@ def seed_db():
                 id=uuid.UUID("22222222-2222-2222-2222-222222222222"),
                 email="owner@vickydiagnostics.com",
                 username="owner",
-                hashed_password="ed59c9ccefad57fd85d14f7fff6ad98c164883ea2b52faefbe449f6d0f14c2e8", # hashed "owner"
+                hashed_password="315eb7dc54118c23ef4da63aec25c775:7fceeb01bd4ad235320399860f8fb925346ab5588d56e485fb7c8805e0731df4", # PBKDF2 "owner"
                 full_name="Main Admin Owner",
                 role_id=role_objs["MAIN_ADMIN"].id,
                 is_active=True
@@ -77,7 +77,7 @@ def seed_db():
                 id=uuid.UUID("11111111-1111-1111-1111-111111111111"),
                 email="staff@vickydiagnostics.com",
                 username="staff",
-                hashed_password="1be74d523e89a85c065d089b23fd01860f196ca220aaeabbad3cd01687b7a199", # hashed "staff"
+                hashed_password="0af0b1929ab7770ec47db08b94fe2763:77a5965829f58043a15b3b7b58ea5ca7cf934b18a1b8dabb0b1911612ab4c214", # PBKDF2 "staff"
                 full_name="Staff Lab Technician Demo",
                 role_id=role_objs["LAB_TECHNICIAN"].id,
                 is_active=True
@@ -93,7 +93,7 @@ def seed_db():
                 id=uuid.UUID("33333333-3333-3333-3333-333333333333"),
                 email="collector@vickydiagnostics.com",
                 username="collector",
-                hashed_password="927a0ffc68ff47ad7dc8b9089c416c062f3eae45817961e7ffa6dc3ad4f2ef7f", # hashed "collector"
+                hashed_password="62fcf34196c6d3d20971bd53181672b9:9d1c0cab1f7292fee0f71187c9c50d31c7c72e5c0e6db32b0273e83d126d7cb6", # PBKDF2 "collector"
                 full_name="Home Collector Team",
                 role_id=role_objs["PHLEBOTOMIST"].id,
                 is_active=True

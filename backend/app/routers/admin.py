@@ -7,7 +7,7 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models import Booking, Patient, Report, Payment, Review, CorporateEnquiry, Test, Package, AuditLog, User, Role
-from app.routers.auth import hash_password
+from app.routers.auth import hash_password, get_admin_user
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -59,7 +59,7 @@ def log_audit(db: Session, user_id: Optional[UUID], action: str, entity_name: st
 
 
 @router.get("/kpis", response_model=AdminKPIs)
-def get_dashboard_kpis(db: Session = Depends(get_db)):
+def get_dashboard_kpis(db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Calculates operational KPIs for the administrative dashboard."""
     # Count total bookings
     total_bookings = db.query(Booking).count()
@@ -85,7 +85,7 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
 
 
 @router.get("/bookings")
-def list_all_bookings(status_filter: Optional[str] = None, db: Session = Depends(get_db)):
+def list_all_bookings(status_filter: Optional[str] = None, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Retrieves all bookings for support admin dashboard."""
     query = db.query(Booking).order_by(Booking.created_at.desc())
     if status_filter:
@@ -137,7 +137,7 @@ def submit_patient_review(payload: ReviewCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/reviews/pending")
-def list_pending_reviews(db: Session = Depends(get_db)):
+def list_pending_reviews(db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Retrieves all reviews currently awaiting support admin approval."""
     return db.query(Review).filter(Review.status == "PENDING").all()
 
@@ -149,7 +149,7 @@ def list_approved_reviews(db: Session = Depends(get_db)):
 
 
 @router.post("/reviews/approve/{review_id}")
-def approve_patient_review(review_id: UUID, admin_user_id: UUID, db: Session = Depends(get_db)):
+def approve_patient_review(review_id: UUID, admin_user_id: UUID, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Approves a patient review to be visible publicly on the website."""
     review = db.query(Review).filter(Review.id == review_id).first()
     if not review:
@@ -165,7 +165,7 @@ def approve_patient_review(review_id: UUID, admin_user_id: UUID, db: Session = D
 
 
 @router.get("/analytics")
-def get_detailed_analytics(db: Session = Depends(get_db)):
+def get_detailed_analytics(db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Retrieves distribution data and details mapping top booking parameters."""
     # Booking Type split
     lab_visit_count = db.query(Booking).filter(Booking.booking_type == "LAB_VISIT").count()
@@ -205,13 +205,13 @@ def submit_corporate_enquiry(payload: CorporateEnquiryCreate, db: Session = Depe
 
 
 @router.get("/corporate-enquiries", response_model=List[CorporateResponse])
-def list_corporate_enquiries(db: Session = Depends(get_db)):
+def list_corporate_enquiries(db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Retrieves list of all corporate enquiries/leads."""
     return db.query(CorporateEnquiry).order_by(CorporateEnquiry.created_at.desc()).all()
 
 
 @router.post("/bookings/{booking_id}/status")
-def update_booking_status(booking_id: UUID, status: str, db: Session = Depends(get_db)):
+def update_booking_status(booking_id: UUID, status: str, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Allows staff/admins to update the status of a booking."""
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
@@ -235,7 +235,7 @@ def update_booking_status(booking_id: UUID, status: str, db: Session = Depends(g
 
 
 @router.post("/bookings/{booking_id}/assign-phlebotomist")
-def assign_phlebotomist(booking_id: UUID, phlebotomist_name: Optional[str] = None, db: Session = Depends(get_db)):
+def assign_phlebotomist(booking_id: UUID, phlebotomist_name: Optional[str] = None, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Assigns a phlebotomist to a booking."""
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
@@ -260,7 +260,7 @@ class PackageCreatePayload(BaseModel):
 
 
 @router.get("/packages")
-def list_admin_packages(db: Session = Depends(get_db)):
+def list_admin_packages(db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Lists all health packages including associated tests details."""
     pkgs = db.query(Package).order_by(Package.name).all()
     result = []
@@ -280,7 +280,7 @@ def list_admin_packages(db: Session = Depends(get_db)):
 
 
 @router.post("/packages")
-def create_package(payload: PackageCreatePayload, db: Session = Depends(get_db)):
+def create_package(payload: PackageCreatePayload, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Creates a new health package in the catalog."""
     import re
     slug = re.sub(r'[^a-z0-9]+', '-', payload.name.lower()).strip('-')
@@ -309,7 +309,7 @@ def create_package(payload: PackageCreatePayload, db: Session = Depends(get_db))
 
 
 @router.put("/packages/{package_id}")
-def edit_package(package_id: UUID, payload: PackageCreatePayload, db: Session = Depends(get_db)):
+def edit_package(package_id: UUID, payload: PackageCreatePayload, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Edits an existing health package's metadata and tests mapping."""
     pkg = db.query(Package).filter(Package.id == package_id).first()
     if not pkg:
@@ -330,7 +330,7 @@ def edit_package(package_id: UUID, payload: PackageCreatePayload, db: Session = 
 
 
 @router.post("/packages/{package_id}/price")
-def update_package_price(package_id: UUID, price: float, db: Session = Depends(get_db)):
+def update_package_price(package_id: UUID, price: float, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Updates the price of a health package."""
     pkg = db.query(Package).filter(Package.id == package_id).first()
     if not pkg:
@@ -341,7 +341,7 @@ def update_package_price(package_id: UUID, price: float, db: Session = Depends(g
 
 
 @router.post("/tests/{test_id}/price")
-def update_test_price_route(test_id: UUID, price: float, db: Session = Depends(get_db)):
+def update_test_price_route(test_id: UUID, price: float, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Updates the price of a catalog test."""
     test = db.query(Test).filter(Test.id == test_id).first()
     if not test:
@@ -364,7 +364,7 @@ class ResetPasswordPayload(BaseModel):
 
 
 @router.get("/users")
-def list_admin_users(db: Session = Depends(get_db)):
+def list_admin_users(db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Retrieves list of all staff/portal users with their role names."""
     users = db.query(User).all()
     result = []
@@ -383,7 +383,7 @@ def list_admin_users(db: Session = Depends(get_db)):
 
 
 @router.post("/users")
-def register_staff_user(payload: UserRegisterPayload, db: Session = Depends(get_db)):
+def register_staff_user(payload: UserRegisterPayload, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Registers a new staff portal user with password hashing."""
     existing_user = db.query(User).filter(
         (User.username == payload.username) | (User.email == payload.email)
@@ -411,7 +411,7 @@ def register_staff_user(payload: UserRegisterPayload, db: Session = Depends(get_
 
 
 @router.post("/users/{user_id}/reset-password")
-def reset_user_password(user_id: UUID, payload: ResetPasswordPayload, db: Session = Depends(get_db)):
+def reset_user_password(user_id: UUID, payload: ResetPasswordPayload, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Resets the password of a portal user."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -422,7 +422,7 @@ def reset_user_password(user_id: UUID, payload: ResetPasswordPayload, db: Sessio
 
 
 @router.post("/users/{user_id}/toggle-status")
-def toggle_user_status(user_id: UUID, db: Session = Depends(get_db)):
+def toggle_user_status(user_id: UUID, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
     """Toggles active/disabled status of a portal user."""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
