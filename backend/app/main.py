@@ -18,6 +18,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class NormalizePathMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            if "//" in path:
+                import re
+                scope["path"] = re.sub(r"/+", "/", path)
+        await self.app(scope, receive, send)
+
+app.add_middleware(NormalizePathMiddleware)
+
 @app.on_event("startup")
 def on_startup():
     from app.database import engine
