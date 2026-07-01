@@ -32,6 +32,23 @@ class NormalizePathMiddleware:
 
 app.add_middleware(NormalizePathMiddleware)
 
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    error_messages = []
+    for error in exc.errors():
+        loc = " -> ".join([str(x) for x in error["loc"]])
+        msg = error["msg"]
+        error_messages.append(f"{loc}: {msg}")
+    detailed_msg = " | ".join(error_messages)
+    print("Validation Error Details:", detailed_msg)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": detailed_msg}
+    )
+
 @app.on_event("startup")
 def on_startup():
     from app.database import engine
