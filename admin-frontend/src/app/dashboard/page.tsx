@@ -161,7 +161,7 @@ export default function AdminDashboard() {
 
   const fetchAdminBlogs = async () => {
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/blogs/all");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/blogs/all");
       if (res.ok) {
         const data = await res.json();
         setAdminBlogs(data);
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       // Fetch KPIs
-      const kpiRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/kpis");
+      const kpiRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/kpis");
       if (kpiRes.ok) {
         const kpiData = await kpiRes.json();
         setKpis({
@@ -227,7 +227,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch Bookings
-      const bookingsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/bookings");
+      const bookingsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/bookings");
       if (bookingsRes.ok) {
         const bookingsData = await bookingsRes.json();
         
@@ -256,35 +256,35 @@ export default function AdminDashboard() {
       }
 
       // Fetch Leads
-      const leadsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/corporate-enquiries");
+      const leadsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/corporate-enquiries");
       if (leadsRes.ok) {
         const leadsData = await leadsRes.json();
         setLeads(leadsData);
       }
 
       // Fetch Catalog Tests
-      const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/tests");
+      const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/catalog/tests");
       if (testsRes.ok) {
         const testsData = await testsRes.json();
         setCatalogTests(testsData);
       }
 
       // Fetch Catalog Packages
-      const pkgsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/packages");
+      const pkgsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/packages");
       if (pkgsRes.ok) {
         const pkgsData = await pkgsRes.json();
         setPackages(pkgsData);
       }
 
       // Fetch Analytics
-      const analyticsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/analytics");
+      const analyticsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/analytics");
       if (analyticsRes.ok) {
         const aData = await analyticsRes.json();
         setAnalyticsData(aData);
       }
 
       // Fetch Pending Reviews
-      const reviewsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/reviews/pending");
+      const reviewsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/reviews/pending");
       if (reviewsRes.ok) {
         const reviewsData = await reviewsRes.json();
         const mappedReviews = reviewsData.map((r: any) => ({
@@ -298,7 +298,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch user list
-      const usersRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/users");
+      const usersRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/users");
       if (usersRes.ok) {
         const usersData = await usersRes.json();
         setUsers(usersData);
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch payment list
-      const payRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/payments");
+      const payRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/payments");
       if (payRes.ok) {
         const payData = await payRes.json();
         setPayments(payData);
@@ -316,7 +316,7 @@ export default function AdminDashboard() {
       }
 
       // Fetch branches list
-      const branchesRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/branches");
+      const branchesRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/branches");
       if (branchesRes.ok) {
         const branchesData = await branchesRes.json();
         setBranches(branchesData);
@@ -442,7 +442,7 @@ export default function AdminDashboard() {
     setBlogSubmitError("");
     setBlogSubmitMessage("");
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/blogs/", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/blogs/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -470,7 +470,7 @@ export default function AdminDashboard() {
 
   const handlePublishBlog = async (blogId: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/blogs/publish/${blogId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/blogs/publish/${blogId}`, {
         method: "POST"
       });
       if (res.ok) {
@@ -491,7 +491,7 @@ export default function AdminDashboard() {
 
   const updateBookingStatus = async (bookingId: string, nextStatus: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/bookings/${bookingId}/status?status=${nextStatus}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/bookings/${bookingId}/status?status=${nextStatus}`, {
         method: "POST"
       });
       if (!res.ok) {
@@ -507,7 +507,7 @@ export default function AdminDashboard() {
 
   const assignPhlebotomist = async (bookingId: string, collectorName: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/bookings/${bookingId}/assign-phlebotomist?phlebotomist_name=${encodeURIComponent(collectorName)}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/bookings/${bookingId}/assign-phlebotomist?phlebotomist_name=${encodeURIComponent(collectorName)}`, {
         method: "POST"
       });
       if (!res.ok) throw new Error("Assignment failed");
@@ -530,8 +530,8 @@ export default function AdminDashboard() {
       };
 
       const url = editingPackageId 
-        ? `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/packages/${editingPackageId}`
-        : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/packages";
+        ? `${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/packages/${editingPackageId}`
+        : (process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/packages";
       
       const method = editingPackageId ? "PUT" : "POST";
 
@@ -556,7 +556,7 @@ export default function AdminDashboard() {
 
   const updatePackagePrice = async (packageId: string, newPrice: number) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/packages/${packageId}/price?price=${newPrice}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/packages/${packageId}/price?price=${newPrice}`, {
         method: "POST"
       });
       if (!res.ok) throw new Error("Failed to update package price");
@@ -592,7 +592,7 @@ export default function AdminDashboard() {
       formData.append("file", file);
       
       const criticalValue = criticalFlags[bookingId] || false;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/upload?booking_id=${bookingId}&critical_value=${criticalValue}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/reports/upload?booking_id=${bookingId}&critical_value=${criticalValue}`, {
         method: "POST",
         body: formData
       });
@@ -617,7 +617,7 @@ export default function AdminDashboard() {
   const handleApproveReport = async (reportId: string, bookingId: string) => {
     try {
       const adminUserId = localStorage.getItem("admin_user_id") || "00000000-0000-0000-0000-000000000000";
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/approve/${reportId}?admin_user_id=${adminUserId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/reports/approve/${reportId}?admin_user_id=${adminUserId}`, {
         method: "POST"
       });
 
@@ -655,7 +655,7 @@ export default function AdminDashboard() {
   const approveReview = async (id: string) => {
     try {
       const adminUserId = localStorage.getItem("admin_user_id") || "00000000-0000-0000-0000-000000000000";
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/reviews/approve/${id}?admin_user_id=${adminUserId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/reviews/approve/${id}?admin_user_id=${adminUserId}`, {
         method: "POST"
       });
       if (res.ok) {
@@ -680,7 +680,7 @@ export default function AdminDashboard() {
   // Simulation Handlers
   const handleProcessRefund = async (paymentId: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/payments/${paymentId}/refund`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/payments/${paymentId}/refund`, {
         method: "POST"
       });
       if (res.ok) {
@@ -705,7 +705,7 @@ export default function AdminDashboard() {
     const pStr = prompt("Enter new password:");
     if (!pStr) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/users/${userId}/reset-password`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/users/${userId}/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: pStr })
@@ -722,7 +722,7 @@ export default function AdminDashboard() {
 
   const handleToggleUserStatus = async (userId: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/users/${userId}/toggle-status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/users/${userId}/toggle-status`, {
         method: "POST"
       });
       if (res.ok) {
@@ -741,7 +741,7 @@ export default function AdminDashboard() {
   const handleRegisterUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/users", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -769,7 +769,7 @@ export default function AdminDashboard() {
 
   const handleToggleBranchStatus = async (branchId: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/branches/${branchId}/toggle-status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/branches/${branchId}/toggle-status`, {
         method: "POST"
       });
       if (res.ok) {
@@ -788,7 +788,7 @@ export default function AdminDashboard() {
   const handleRegisterBranch = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/branches", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/branches", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

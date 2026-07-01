@@ -126,7 +126,7 @@ export default function PackageDetailPage() {
 
   const fetchPackageDetails = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/packages/${slug}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/catalog/packages/${slug}`);
       if (res.ok) {
         const data = await res.json();
         // Extract test ids or tests array

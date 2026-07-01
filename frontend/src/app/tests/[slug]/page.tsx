@@ -32,7 +32,7 @@ export default function TestDetailPage() {
 
   const fetchTestDetails = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/tests/${slug}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/catalog/tests/${slug}`);
       if (res.ok) {
         const data = await res.json();
         setTest({

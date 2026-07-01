@@ -496,7 +496,7 @@ function BookingFlowContent() {
 
   const fetchCatalog = async () => {
     try {
-      const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/tests");
+      const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/catalog/tests");
       if (testsRes.ok) {
         const testsData = await testsRes.json();
         if (testsData && testsData.length > 0) {
@@ -510,7 +510,7 @@ function BookingFlowContent() {
           setTests(formatted);
         }
       }
-      const pkgsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/packages");
+      const pkgsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/catalog/packages");
       if (pkgsRes.ok) {
         const pkgsData = await pkgsRes.json();
         if (pkgsData && pkgsData.length > 0) {
@@ -677,7 +677,7 @@ function BookingFlowContent() {
         payment_method: paymentMethod
       };
 
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/bookings/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -700,7 +700,7 @@ function BookingFlowContent() {
         // If order ID is mock or Razorpay SDK is unavailable, simulate successful payment locally
         if (!orderId || orderId.startsWith("order_mock_") || !(window as any).Razorpay) {
           try {
-            const verifyRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/verify-payment", {
+            const verifyRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/bookings/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -730,7 +730,7 @@ function BookingFlowContent() {
           order_id: orderId,
           handler: async function (response: any) {
             try {
-              const verifyRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/verify-payment", {
+              const verifyRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/bookings/verify-payment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -774,7 +774,7 @@ function BookingFlowContent() {
   const fetchSlots = async (dateStr: string) => {
     try {
       const branchId = tests[0]?.branch_id || "da4ff965-f9be-4ff2-8d7b-cbff246e7f8e";
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/check-slots", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/bookings/check-slots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1598,7 +1598,7 @@ function BookingFlowContent() {
                             payment_method: "RAZORPAY"
                           };
 
-                          const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/", {
+                          const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/bookings/", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify(payload)
@@ -1622,7 +1622,7 @@ function BookingFlowContent() {
                           setCreatedBooking(bookingData);
 
                           // Force mock verification call
-                          const verifyRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/bookings/verify-payment", {
+                          const verifyRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/bookings/verify-payment", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({

@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
+import json
 
 class Settings(BaseSettings):
     DATABASE_URL: str = Field(default="postgresql://postgres:postgres@localhost:5432/diagnostic_db")
@@ -16,7 +17,25 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
         "http://127.0.0.1:3002",
+        "https://diagnose1.vercel.app",
+        "https://diagnose1-admin.vercel.app",
+        "https://diagnose-admin.vercel.app",
     ])
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            try:
+                # Try to parse as JSON list
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [str(item).strip() for item in parsed]
+            except json.JSONDecodeError:
+                pass
+            # Fallback to comma-separated values
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
     
     # Razorpay Credentials
     RAZORPAY_KEY_ID: str = Field(default="rzp_test_placeholder")

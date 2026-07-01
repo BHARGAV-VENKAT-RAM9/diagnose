@@ -598,14 +598,14 @@ export default function Home() {
 
   const fetchCatalog = async () => {
     try {
-      const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/tests");
+      const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/catalog/tests");
       if (testsRes.ok) {
         const testsData = await testsRes.json();
         if (testsData && testsData.length > 0) {
           setTests(testsData);
         }
       }
-      const pkgsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/catalog/packages");
+      const pkgsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/catalog/packages");
       if (pkgsRes.ok) {
         const pkgsData = await pkgsRes.json();
         if (pkgsData && pkgsData.length > 0) {
@@ -619,7 +619,7 @@ export default function Home() {
 
   const fetchApprovedReviews = async () => {
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/reviews/approved");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/reviews/approved");
       if (res.ok) {
         const data = await res.json();
         setApprovedReviews(data.length > 0 ? data : DEFAULT_REVIEWS);
@@ -646,7 +646,7 @@ export default function Home() {
     setReviewSubmitError("");
     setReviewSubmitMessage("");
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/reviews", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -672,7 +672,7 @@ export default function Home() {
 
   const fetchAdminBookings = async () => {
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/bookings");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/bookings");
       if (res.ok) {
         const data = await res.json();
         const formatted = data.map((b: any) => ({
@@ -697,7 +697,7 @@ export default function Home() {
 
   const fetchPendingReviews = async () => {
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/admin/reviews/pending");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/reviews/pending");
       if (res.ok) {
         const data = await res.json();
         setPendingReviews(data);
@@ -709,7 +709,7 @@ export default function Home() {
 
   const handleApproveReview = async (reviewId: string) => {
     try {
-      const loginRes = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/auth/login", {
+      const loginRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: "admin", password: "admin" })
@@ -721,7 +721,7 @@ export default function Home() {
       const loginData = await loginRes.json();
       const adminUserId = loginData.user_id;
 
-      const approveRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/admin/reviews/approve/${reviewId}?admin_user_id=${adminUserId}`, {
+      const approveRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/reviews/approve/${reviewId}?admin_user_id=${adminUserId}`, {
         method: "POST"
       });
       if (approveRes.ok) {
@@ -782,7 +782,7 @@ export default function Home() {
 
     setOtpError("");
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/request-otp?phone=${portalPhone}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/reports/request-otp?phone=${portalPhone}`, {
         method: "POST"
       });
       if (res.ok) {
@@ -806,7 +806,7 @@ export default function Home() {
     setOtpError("");
 
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/v1/reports/verify-otp", {
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/reports/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: portalPhone, otp: portalOtp })
@@ -814,7 +814,7 @@ export default function Home() {
 
       if (res.ok) {
         setOtpVerified(true);
-        const reportsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/patient-reports?phone=${portalPhone}`);
+        const reportsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/reports/patient-reports?phone=${portalPhone}`);
         if (reportsRes.ok) {
           const reportsData = await reportsRes.json();
           const formatted = reportsData.map((r: any) => ({
@@ -1733,7 +1733,7 @@ export default function Home() {
                               onClick={async () => {
                                 setDownloadingReportId(report.id);
                                 try {
-                                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/reports/download/${report.id}?phone=${portalPhone}`);
+                                  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/reports/download/${report.id}?phone=${portalPhone}`);
                                   if (res.ok) {
                                     const data = await res.json();
                                     alert("Dynamic secure signed URL generated! Access granted for 5 minutes.");
