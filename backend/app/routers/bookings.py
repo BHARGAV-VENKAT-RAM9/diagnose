@@ -297,7 +297,10 @@ def verify_payment(payload: PaymentVerify, db: Session = Depends(get_db)):
             ).hexdigest()
             
             if generated_signature != payload.razorpay_signature:
-                print(f"Warning: Signature verification failed. Expected {generated_signature}, got {payload.razorpay_signature}. Allowing payment in development mode.")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid payment signature. Verification failed."
+                )
 
     # Update payment & booking status
     payment.status = "SUCCESS"

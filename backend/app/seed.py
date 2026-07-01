@@ -292,9 +292,11 @@ def seed_db():
                     discount_price=pkg["discount_price"],
                     is_active=True
                 )
-                package.tests = db.query(Test).filter(Test.slug.in_(pkg["test_slugs"])).all()
                 db.add(package)
                 db.flush()
+            
+            # Always sync tests to ensure packages are fully populated once tests are seeded!
+            package.tests = db.query(Test).filter(Test.slug.in_(pkg["test_slugs"])).all()
 
 
         # 7. Create Reviews

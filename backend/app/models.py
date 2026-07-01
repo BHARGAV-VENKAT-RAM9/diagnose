@@ -285,3 +285,14 @@ class AuditLog(Base):
     details = Column(Text, nullable=True)
     ip_address = Column(String(45), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class OTPVerification(Base):
+    __tablename__ = "otp_verifications"
+    
+    phone = Column(String(15), primary_key=True, index=True)
+    otp = Column(String(6), nullable=False)
+    attempts = Column(Integer, default=0)
+    expires_at = Column(DateTime, nullable=False)
+    locked_until = Column(DateTime, nullable=True)
+
