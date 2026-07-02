@@ -1164,9 +1164,13 @@ function BookingFlowContent() {
                     <label className="text-xs font-bold text-slate-700">Mobile Phone *</label>
                     <input
                       type="text"
+                      maxLength={10}
                       placeholder="10-digit number"
                       value={patientDetails.phone}
-                      onChange={(e) => setPatientDetails({ ...patientDetails, phone: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        setPatientDetails({ ...patientDetails, phone: val });
+                      }}
                       className="w-full border border-slate-300 rounded-md p-2 text-sm focus:border-primary focus:outline-none"
                     />
                   </div>
@@ -1281,6 +1285,10 @@ function BookingFlowContent() {
                     onClick={() => {
                       if (!patientDetails.fullName || !patientDetails.phone || !patientDetails.age || !patientDetails.gender) {
                         alert("Please fill in all required patient details.");
+                        return;
+                      }
+                      if (patientDetails.phone.length !== 10 || !/^\d{10}$/.test(patientDetails.phone)) {
+                        alert("Please enter a valid 10-digit mobile number.");
                         return;
                       }
                       if (bookingType === "HOME_COLLECTION") {

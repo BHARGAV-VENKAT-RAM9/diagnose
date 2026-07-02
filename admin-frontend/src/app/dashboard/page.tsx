@@ -11,10 +11,19 @@ export default function AdminDashboard() {
       ...(options.headers || {}),
       ...(token ? { "Authorization": `Bearer ${token}` } : {})
     };
-    return fetch(url, {
+    
+    const res = await fetch(url, {
       ...options,
       headers
     });
+
+    // Intercept unauthorized requests, clear stale session, and redirect to login
+    if (res.status === 401) {
+      localStorage.clear();
+      router.push("/login");
+    }
+
+    return res;
   };
 
   const [role, setRole] = useState<string | null>(null);
@@ -2164,22 +2173,43 @@ export default function AdminDashboard() {
                       <div className="border border-slate-200 rounded-lg p-3 bg-white space-y-3">
                         <div className="flex flex-col gap-2">
                           <label className="text-[10px] font-bold text-slate-500 uppercase text-left">Select Report File</label>
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0] || null;
-                              setSelectedFiles(prev => ({ ...prev, [b.id]: file }));
-                              setUploadProgress(prev => ({ ...prev, [b.id]: "" }));
-                              setUploadChecksums(prev => ({ ...prev, [b.id]: "" }));
-                            }}
-                            className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
-                          />
-                          {selectedFiles[b.id] && (
-                            <p className="text-[10px] text-slate-500 text-left">
-                              Selected: <strong>{selectedFiles[b.id]?.name}</strong> ({(selectedFiles[b.id]!.size / 1024).toFixed(1)} KB)
-                            </p>
-                          )}
+                          <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-4 transition-all duration-200 cursor-pointer ${
+                            selectedFiles[b.id] 
+                              ? "border-emerald-500 bg-emerald-50/50 hover:bg-emerald-50" 
+                              : "border-slate-300 bg-slate-50/50 hover:bg-slate-100/70 hover:border-primary"
+                          }`}>
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] || null;
+                                setSelectedFiles(prev => ({ ...prev, [b.id]: file }));
+                                setUploadProgress(prev => ({ ...prev, [b.id]: "" }));
+                                setUploadChecksums(prev => ({ ...prev, [b.id]: "" }));
+                              }}
+                              className="hidden"
+                            />
+                            {selectedFiles[b.id] ? (
+                              <div className="text-center space-y-1">
+                                <span className="text-emerald-500 text-lg">📄</span>
+                                <p className="text-[10px] font-bold text-emerald-800 break-all px-2">
+                                  {selectedFiles[b.id]?.name}
+                                </p>
+                                <p className="text-[9px] text-emerald-600">
+                                  ({(selectedFiles[b.id]!.size / 1024).toFixed(1)} KB)
+                                </p>
+                                <span className="inline-block mt-1 text-[8px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                  Selected (Click to change)
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-center space-y-1">
+                                <span className="text-slate-400 text-lg">📤</span>
+                                <p className="text-[10px] font-bold text-slate-700">Click to upload report</p>
+                                <p className="text-[8px] text-slate-400">PDF, JPG, PNG up to 5MB</p>
+                              </div>
+                            )}
+                          </label>
                         </div>
 
                         <div className="flex items-center gap-2 pt-1">

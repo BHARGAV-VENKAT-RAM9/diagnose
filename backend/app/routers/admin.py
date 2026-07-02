@@ -7,7 +7,7 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models import Booking, Patient, Report, Payment, Review, CorporateEnquiry, Test, Package, AuditLog, User, Role
-from app.routers.auth import hash_password, get_admin_user
+from app.routers.auth import hash_password, get_admin_user, get_current_user
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -85,7 +85,7 @@ def get_dashboard_kpis(db: Session = Depends(get_db), current_user: dict = Depen
 
 
 @router.get("/bookings")
-def list_all_bookings(status_filter: Optional[str] = None, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
+def list_all_bookings(status_filter: Optional[str] = None, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Retrieves all bookings for support admin dashboard."""
     query = db.query(Booking).order_by(Booking.created_at.desc())
     if status_filter:
@@ -211,7 +211,7 @@ def list_corporate_enquiries(db: Session = Depends(get_db), current_user: dict =
 
 
 @router.post("/bookings/{booking_id}/status")
-def update_booking_status(booking_id: UUID, status: str, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)):
+def update_booking_status(booking_id: UUID, status: str, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Allows staff/admins to update the status of a booking."""
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
