@@ -15,10 +15,12 @@ from app.models import User, Role
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Securely load Secret key from environment variables
-SECRET_KEY_ENV = os.getenv("SECRET_KEY")
+# Securely load Secret key from configuration settings
+SECRET_KEY_ENV = settings.SECRET_KEY
 if not SECRET_KEY_ENV:
-    SECRET_KEY_ENV = os.getenv("RAZORPAY_KEY_SECRET", "fallback_secure_diagnostic_secret_key_sspi")
+    SECRET_KEY_ENV = settings.RAZORPAY_KEY_SECRET
+    if not SECRET_KEY_ENV or SECRET_KEY_ENV == "secret_placeholder":
+        raise RuntimeError("SECRET_KEY environment variable is not set. A secure cryptographic key is required.")
 SECRET_KEY = SECRET_KEY_ENV.encode()
 
 security = HTTPBearer()

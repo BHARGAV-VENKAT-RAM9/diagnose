@@ -63,11 +63,15 @@ def on_startup():
     from app.database import engine
     from app.models import Base
     from app.seed import seed_db
+    from sqlalchemy import text
     
     print("Verifying database schema...")
     try:
         Base.metadata.create_all(bind=engine)
         print("Database schema checked/created successfully.")
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_phlebotomist VARCHAR(100);"))
+        print("Dynamic database migrations complete.")
     except Exception as err:
         print("Warning: Database connection/schema generation failed during startup:", err)
         

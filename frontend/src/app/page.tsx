@@ -4,156 +4,18 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "./context/TranslationContext";
 import { useCart } from "./context/CartContext";
 import { Header } from "../components/Header";
+import { Footer } from "../components/Footer";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import catalogData from "./data/catalog.json";
+import { TestCard } from "../components/TestCard";
+import { PackageCard } from "../components/PackageCard";
+import { ReviewsSection } from "../components/ReviewsSection";
+import { AdminPipelineSimulator } from "../components/AdminPipelineSimulator";
 
-// Default clinical database seeded for offline/interactive availability
-const LOCAL_TESTS = [
-  {
-    id: "t1",
-    name: "Complete Blood Count (CBC)",
-    slug: "cbc",
-    price: 299,
-    tat: "12 Hours",
-    sample_type: "Blood",
-    priority: "ROUTINE",
-    preparation: "No special preparation required.",
-    home_collection: true,
-    home_notes: "Avoid heavy meals just before.",
-    description: "Evaluates overall health and detects anemia, infection, and leukemia."
-  },
-  {
-    id: "t2",
-    name: "Vitamin D (25-Hydroxy)",
-    slug: "vitamin-d",
-    price: 999,
-    tat: "24 Hours",
-    sample_type: "Blood",
-    priority: "ROUTINE",
-    preparation: "10-12 hours fasting is recommended.",
-    home_collection: true,
-    home_notes: "Drink plenty of water before collection.",
-    description: "Measures Vitamin D concentration to identify bone and metabolism deficiencies."
-  },
-  {
-    id: "t3",
-    name: "Thyroid Profile (T3, T4, TSH)",
-    slug: "thyroid-profile",
-    price: 599,
-    tat: "12 Hours",
-    sample_type: "Blood",
-    priority: "ROUTINE",
-    preparation: "Morning sample preferred. Fasting optional.",
-    home_collection: true,
-    home_notes: "Collect early morning before taking thyroid medications.",
-    description: "Assesses thyroid gland function to evaluate metabolic speed and energy."
-  },
-  {
-    id: "t4",
-    name: "Liver Function Test (LFT)",
-    slug: "lft",
-    price: 499,
-    tat: "12 Hours",
-    sample_type: "Blood",
-    priority: "ROUTINE",
-    preparation: "Fasting of 8-10 hours is mandatory.",
-    home_collection: true,
-    home_notes: "Avoid alcohol 24 hours prior to collection.",
-    description: "Measures proteins, enzymes, and bilirubin to screen for liver disorders."
-  },
-  {
-    id: "t5",
-    name: "Digital ECG (Electrocardiogram)",
-    slug: "digital-ecg",
-    price: 399,
-    tat: "2 Hours",
-    sample_type: "Radiology",
-    priority: "ROUTINE",
-    preparation: "Avoid caffeine or nicotine 2 hours prior to the test.",
-    home_collection: true,
-    home_notes: "Requires a quiet, flat resting space.",
-    description: "Records the electrical signals in your heart to check for different heart conditions."
-  },
-  {
-    id: "t6",
-    name: "Ultrasound Abdomen & Pelvis (USG)",
-    slug: "ultrasound-abdomen-pelvis",
-    price: 1299,
-    tat: "4 Hours",
-    sample_type: "Radiology",
-    priority: "ROUTINE",
-    preparation: "Full bladder required. Drink 4-5 glasses of water 1 hour before.",
-    home_collection: false,
-    home_notes: "Only available for walk-in lab visits.",
-    description: "Uses sound waves to evaluate abdominal organs like liver, kidneys, gallbladder, spleen, and pelvis."
-  }
-];
+const LOCAL_TESTS = catalogData.tests;
+const LOCAL_PACKAGES = catalogData.packages;
 
-const LOCAL_PACKAGES = [
-  {
-    id: "p1",
-    name: "Comprehensive Health Package",
-    slug: "comprehensive-health-package",
-    price: 1397,
-    discount_price: 1199,
-    tests: ["t1", "t3", "t4"],
-    description: "Full body panel containing Complete Blood Count, Liver Function Test, and Thyroid Profile at a bundle discount."
-  },
-  {
-    id: "p2",
-    name: "Basic Health Checkup",
-    slug: "basic-health-checkup",
-    price: 1499,
-    discount_price: 999,
-    tests: ["t1", "glucose-fasting-fbs", "glycosylated-hba1c", "lipid-profile", "lft", "renal-profilerft-or-kft", "urine-complete-analysis-cue-urine", "tsh-thyroid-stimulating-hormone-ultra"],
-    description: "Essential screening package evaluating overall health, blood sugar, lipid levels, thyroid, liver, and kidney function."
-  },
-  {
-    id: "p3",
-    name: "Diabetes Profile",
-    slug: "diabetes-profile",
-    price: 1999,
-    discount_price: 1499,
-    tests: ["glycosylated-hba1c", "glucose-fasting-fbs", "glucose-post-lunch", "urine-glucose-r", "micro-albumin-urine", "renal-profilerft-or-kft", "lipid-profile"],
-    description: "Comprehensive panel for monitoring and diagnosing blood sugar levels, long-term glycemic control, and secondary diabetic implications on kidneys and lipids."
-  },
-  {
-    id: "p4",
-    name: "Thyroid Profile",
-    slug: "thyroid-profile-package",
-    price: 999,
-    discount_price: 799,
-    tests: ["t3", "t4", "tsh", "free-t3-triiodothyronine-free-t3", "free-t4-thyroxine-free", "tsh-thyroid-stimulating-hormone-ultra", "total-t4-thyroxine-t4", "thyroid-profile"],
-    description: "Evaluates thyroid gland activity. Includes free and total thyroid hormones to screen for hyperthyroidism and hypothyroidism."
-  },
-  {
-    id: "p5",
-    name: "Heart Health Package",
-    slug: "heart-health-package",
-    price: 2499,
-    discount_price: 1999,
-    tests: ["t1", "lipid-profile", "digital-ecg", "crp-c-reactive-protein", "glucose-fasting-fbs", "lft", "renal-profilerft-or-kft"],
-    description: "Cardiovascular screening package including lipid analysis, cardiac inflammatory marker (CRP), ECG, glucose, and metabolic status."
-  },
-  {
-    id: "p6",
-    name: "Women's Health Package",
-    slug: "womens-health-package",
-    price: 2999,
-    discount_price: 2499,
-    tests: ["t1", "glycosylated-hba1c", "lipid-profile", "thyroid-profile", "vitamin-d", "vitamin-b12-active-holotranscobalamin", "calcium", "iron-studies", "urine-complete-analysis-cue-urine"],
-    description: "Specifically designed checkup for women, focusing on bone health, anemia, vitamins, thyroid function, and diabetic screening."
-  },
-  {
-    id: "p7",
-    name: "Senior Citizen Health Package",
-    slug: "senior-citizen-health-package",
-    price: 4499,
-    discount_price: 3499,
-    tests: ["t1", "glycosylated-hba1c", "glucose-fasting-fbs", "lipid-profile", "lft", "renal-profilerft-or-kft", "vitamin-d", "vitamin-b12-active-holotranscobalamin", "thyroid-profile", "digital-ecg", "urine-complete-analysis-cue-urine"],
-    description: "Full body geriatric screening panel covering critical parameters for elder care including cardiac, kidney, liver, vitamins, and metabolic functions."
-  }
-];
 
 const generatePackageDetails = (pkg: any, testsList: any[]) => {
   if (!pkg) return null;
@@ -374,6 +236,26 @@ const generateTestDetails = (test: any) => {
   };
 };
 
+const SkeletonCard = () => (
+  <div className="glass-card rounded-xl p-5 flex flex-col justify-between min-h-[255px] shadow-sm animate-pulse">
+    <div className="space-y-4">
+      <div className="h-4 w-20 bg-slate-200/80 rounded-full skeleton-pulse"></div>
+      <div className="space-y-2">
+        <div className="h-5 w-3/4 bg-slate-200/80 rounded skeleton-pulse"></div>
+        <div className="h-3 w-5/6 bg-slate-200/80 rounded skeleton-pulse"></div>
+        <div className="h-3 w-4/6 bg-slate-200/80 rounded skeleton-pulse"></div>
+      </div>
+    </div>
+    <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+      <div className="space-y-1">
+        <div className="h-3 w-8 bg-slate-200/80 rounded skeleton-pulse"></div>
+        <div className="h-4 w-12 bg-slate-200/80 rounded skeleton-pulse"></div>
+      </div>
+      <div className="h-8 w-20 bg-slate-200/80 rounded-md skeleton-pulse"></div>
+    </div>
+  </div>
+);
+
 export default function Home() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -382,6 +264,7 @@ export default function Home() {
   const [tests, setTests] = useState<any[]>(LOCAL_TESTS);
   const [patientToken, setPatientToken] = useState<string | null>(null);
   const [packages, setPackages] = useState<any[]>(LOCAL_PACKAGES);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [adminBookings, setAdminBookings] = useState<any[]>([
     {
       id: "b-101",
@@ -598,6 +481,7 @@ export default function Home() {
   });
 
   const fetchCatalog = async () => {
+    setLoadingCatalog(true);
     try {
       const testsRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/catalog/tests");
       if (testsRes.ok) {
@@ -615,6 +499,10 @@ export default function Home() {
       }
     } catch (err) {
       console.log("Using local fallbacks for catalog:", err);
+    } finally {
+      setTimeout(() => {
+        setLoadingCatalog(false);
+      }, 600);
     }
   };
 
@@ -672,8 +560,14 @@ export default function Home() {
   };
 
   const fetchAdminBookings = async () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+    if (!token) return;
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/bookings");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/bookings", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         const formatted = data.map((b: any) => ({
@@ -697,8 +591,14 @@ export default function Home() {
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
 
   const fetchPendingReviews = async () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+    if (!token) return;
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/reviews/pending");
+      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/admin/reviews/pending", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setPendingReviews(data);
@@ -709,21 +609,44 @@ export default function Home() {
   };
 
   const handleApproveReview = async (reviewId: string) => {
-    try {
-      const loginRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "admin", password: "admin" })
-      });
-      if (!loginRes.ok) {
-        alert("Failed to authenticate as Admin.");
+    let token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+    let adminUserId = typeof window !== "undefined" ? localStorage.getItem("admin_user_id") : null;
+
+    if (!token || !adminUserId) {
+      const usernameInput = prompt("Enter Admin/Staff Username to approve review:");
+      if (!usernameInput) return;
+      const passwordInput = prompt("Enter Password:");
+      if (!passwordInput) return;
+
+      try {
+        const loginRes = await fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: usernameInput, password: passwordInput })
+        });
+        if (!loginRes.ok) {
+          alert("Failed to authenticate as Admin.");
+          return;
+        }
+        const loginData = await loginRes.json();
+        token = loginData.access_token;
+        adminUserId = loginData.user_id;
+        if (typeof window !== "undefined") {
+          localStorage.setItem("admin_token", token || "");
+          localStorage.setItem("admin_user_id", adminUserId || "");
+        }
+      } catch (err) {
+        alert("Authentication network error.");
         return;
       }
-      const loginData = await loginRes.json();
-      const adminUserId = loginData.user_id;
+    }
 
+    try {
       const approveRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + ""}/api/v1/admin/reviews/approve/${reviewId}?admin_user_id=${adminUserId}`, {
-        method: "POST"
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
       });
       if (approveRes.ok) {
         alert("Review approved successfully! It will now appear on the homepage.");
@@ -740,8 +663,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchAdminBookings();
-    fetchPendingReviews();
+    const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+    if (token) {
+      fetchAdminBookings();
+      fetchPendingReviews();
+    }
   }, []);
 
   // Admin Pipeline Simulation States
@@ -749,8 +675,45 @@ export default function Home() {
 
   useEffect(() => {
     if (showAdminPipeline) {
-      fetchAdminBookings();
-      fetchPendingReviews();
+      const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+      if (!token) {
+        const usernameInput = prompt("Enter Admin/Staff Username to view pipeline:");
+        if (!usernameInput) {
+          setShowAdminPipeline(false);
+          return;
+        }
+        const passwordInput = prompt("Enter Password:");
+        if (!passwordInput) {
+          setShowAdminPipeline(false);
+          return;
+        }
+        
+        fetch((process.env.NEXT_PUBLIC_API_URL || (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "") + "/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: usernameInput, password: passwordInput })
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("Auth failed");
+          return res.json();
+        })
+        .then(data => {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("admin_token", data.access_token);
+            localStorage.setItem("admin_user_id", data.user_id);
+            localStorage.setItem("admin_role", data.role);
+          }
+          fetchAdminBookings();
+          fetchPendingReviews();
+        })
+        .catch(err => {
+          alert("Failed to authenticate as staff.");
+          setShowAdminPipeline(false);
+        });
+      } else {
+        fetchAdminBookings();
+        fetchPendingReviews();
+      }
     }
   }, [showAdminPipeline]);
 
@@ -910,7 +873,13 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen relative">
+      {/* Premium ambient background mesh blobs */}
+      <div className="ambient-blob-container">
+        <div className="ambient-blob-1"></div>
+        <div className="ambient-blob-2"></div>
+      </div>
+
       <Header />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
@@ -941,10 +910,7 @@ export default function Home() {
         {/* ORGAN / HEALTH CONCERN GRID (Apollo-Inspired) */}
         <section className="space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Shop by Health Concerns</h2>
-            <p className="text-slate-500 text-sm max-w-xl mx-auto">
-              Select a health category below to instantly find the relevant clinical tests and wellness packages.
-            </p>
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Health Concerns</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
             {[
@@ -1007,129 +973,43 @@ export default function Home() {
 
           {/* Tab Content Display Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in duration-300">
-            {activeDeptTab === "blood" &&
-              pathologyTests.slice(0, 4).map((test) => (
-                <div key={test.id} className="bg-white border border-slate-200 rounded-xl p-5 hover-scale flex flex-col justify-between min-h-[255px]">
-                  <div className="space-y-2 flex flex-col justify-between h-full">
-                    <div>
-                      <span className="inline-block text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase">
-                        {test.sample_type} Test
-                      </span>
-                      <h3 className="font-bold text-slate-800 text-sm line-clamp-2 leading-tight min-h-[40px] mt-1">
-                        {test.name}
-                      </h3>
-                      <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">
-                        {test.description}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setActiveTestDetails(test)}
-                      className="text-[10px] font-bold text-primary hover:text-primary-hover flex items-center gap-1 mt-2 focus:outline-none group/btn transition-colors cursor-pointer self-start"
-                    >
-                      <span>View More & Prep</span>
-                      <span className="transition-transform group-hover/btn:translate-x-0.5">&rarr;</span>
-                    </button>
-                  </div>
-                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Price</span>
-                      <span className="font-mono text-sm font-extrabold text-slate-900">₹{test.price}</span>
-                    </div>
-                    <button
-                      onClick={() => handleTestClickHomepage(test)}
-                      className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-[10px] font-bold rounded-md shadow-sm transition-all"
-                    >
-                      Book Now
-                    </button>
-                  </div>
-                </div>
-              ))}
+            {loadingCatalog ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <SkeletonCard key={idx} />
+              ))
+            ) : (
+              <>
+                {activeDeptTab === "blood" &&
+                  pathologyTests.slice(0, 4).map((test) => (
+                    <TestCard
+                      key={test.id}
+                      test={test}
+                      onViewDetails={setActiveTestDetails}
+                      onBook={handleTestClickHomepage}
+                    />
+                  ))}
 
-            {activeDeptTab === "scans" &&
-              radiologyTests.slice(0, 4).map((test) => (
-                <div key={test.id} className="bg-white border border-slate-200 rounded-xl p-5 hover-scale flex flex-col justify-between min-h-[255px]">
-                  <div className="space-y-2 flex flex-col justify-between h-full">
-                    <div>
-                      <span className="inline-block text-[9px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase">
-                        {test.sample_type} Scan
-                      </span>
-                      <h3 className="font-bold text-slate-800 text-sm line-clamp-2 leading-tight min-h-[40px] mt-1">
-                        {test.name}
-                      </h3>
-                      <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">
-                        {test.description}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setActiveTestDetails(test)}
-                      className="text-[10px] font-bold text-primary hover:text-primary-hover flex items-center gap-1 mt-2 focus:outline-none group/btn transition-colors cursor-pointer self-start"
-                    >
-                      <span>View More & Prep</span>
-                      <span className="transition-transform group-hover/btn:translate-x-0.5">&rarr;</span>
-                    </button>
-                  </div>
-                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Price</span>
-                      <span className="font-mono text-sm font-extrabold text-slate-900">₹{test.price}</span>
-                    </div>
-                    <button
-                      onClick={() => handleTestClickHomepage(test)}
-                      className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-[10px] font-bold rounded-md shadow-sm transition-all"
-                    >
-                      Book Now
-                    </button>
-                  </div>
-                </div>
-              ))}
+                {activeDeptTab === "scans" &&
+                  radiologyTests.slice(0, 4).map((test) => (
+                    <TestCard
+                      key={test.id}
+                      test={test}
+                      onViewDetails={setActiveTestDetails}
+                      onBook={handleTestClickHomepage}
+                    />
+                  ))}
 
-            {activeDeptTab === "packages" &&
-              packages.slice(0, 4).map((pkg) => (
-                <div key={pkg.id} className="bg-white border border-slate-200 rounded-xl p-5 hover-scale flex flex-col justify-between min-h-[255px]">
-                  <div className="space-y-2 flex flex-col justify-between h-full">
-                    <div>
-                      <div className="flex justify-between items-center">
-                        <span className="inline-block text-[9px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full uppercase">
-                          Popular Bundle
-                        </span>
-                        <span className="text-[9px] text-green-700 font-bold bg-green-50 px-2 py-0.5 rounded-full">
-                          Save {Math.round(((pkg.price - (pkg.discount_price || pkg.price)) / pkg.price) * 100)}%
-                        </span>
-                      </div>
-                      <h3 className="font-bold text-slate-800 text-sm line-clamp-2 leading-tight min-h-[40px] mt-1">
-                        {pkg.name}
-                      </h3>
-                      <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">
-                        {pkg.description}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setActivePackageDetails(pkg)}
-                      className="text-[10px] font-bold text-primary hover:text-primary-hover flex items-center gap-1 mt-2 focus:outline-none group/btn transition-colors cursor-pointer self-start"
-                    >
-                      <span>View More & Prep</span>
-                      <span className="transition-transform group-hover/btn:translate-x-0.5">&rarr;</span>
-                    </button>
-                  </div>
-                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Offer Price</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-sm font-extrabold text-slate-900">₹{pkg.discount_price || pkg.price}</span>
-                        <span className="font-mono text-[10px] text-slate-400 line-through">₹{pkg.price}</span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        router.push("/booking?filter=packages");
-                      }}
-                      className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-[10px] font-bold rounded-md shadow-sm transition-all"
-                    >
-                      Book Now
-                    </button>
-                  </div>
-                </div>
-              ))}
+                {activeDeptTab === "packages" &&
+                  packages.slice(0, 4).map((pkg) => (
+                    <PackageCard
+                      key={pkg.id}
+                      pkg={pkg}
+                      onViewDetails={setActivePackageDetails}
+                      onBook={() => router.push("/booking?filter=packages")}
+                    />
+                  ))}
+              </>
+            )}
           </div>
           
           <div className="text-center pt-2">
@@ -1423,97 +1303,15 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CLINICAL PATIENT FEEDBACK REVIEWS */}
-        <section id="reviews" className="space-y-6">
-          <h2 className="text-2xl font-bold text-slate-800 text-center">Patient Experiences</h2>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {approvedReviews.map((rev, idx) => (
-                  <div key={rev.id || idx} className="bg-white border border-slate-200 rounded-lg p-5 space-y-3 shadow-sm flex flex-col justify-between">
-                    <div>
-                      <div className="flex text-amber-400 text-sm">
-                        {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)}
-                      </div>
-                      <p className="text-xs text-slate-700 italic leading-relaxed mt-2">
-                        "{rev.review_text || rev.text}"
-                      </p>
-                    </div>
-                    <p className="text-xs font-bold text-slate-900 mt-4">- {rev.patient_name || rev.name}</p>
-                  </div>
-                ))}
-                {approvedReviews.length === 0 && (
-                  <p className="text-xs text-slate-500 text-center col-span-2 py-8">No approved reviews yet. Be the first to write one!</p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b pb-2">Share Your Experience</h3>
-              
-              <form onSubmit={handleSubmitReview} className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Your Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter name"
-                    value={newReview.patientName}
-                    onChange={(e) => setNewReview({ ...newReview, patientName: e.target.value })}
-                    className="w-full border border-slate-200 rounded p-2 text-xs focus:border-primary focus:outline-none"
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Rating</label>
-                  <select
-                    value={newReview.rating}
-                    onChange={(e) => setNewReview({ ...newReview, rating: Number(e.target.value) })}
-                    className="w-full border border-slate-200 rounded p-2 text-xs bg-white focus:border-primary focus:outline-none"
-                  >
-                    <option value={5}>5 Stars (Excellent)</option>
-                    <option value={4}>4 Stars (Good)</option>
-                    <option value={3}>3 Stars (Average)</option>
-                    <option value={2}>2 Stars (Poor)</option>
-                    <option value={1}>1 Star (Very Bad)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Review Details</label>
-                  <textarea
-                    rows={3}
-                    placeholder="Write your feedback..."
-                    value={newReview.reviewText}
-                    onChange={(e) => setNewReview({ ...newReview, reviewText: e.target.value })}
-                    className="w-full border border-slate-200 rounded p-2 text-xs focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                {reviewSubmitMessage && (
-                  <p className="text-[10px] font-semibold text-green-700 bg-green-50 p-2 border border-green-200 rounded">
-                    {reviewSubmitMessage}
-                  </p>
-                )}
-                
-                {reviewSubmitError && (
-                  <p className="text-[10px] font-semibold text-red-700 bg-red-50 p-2 border border-red-200 rounded">
-                    {reviewSubmitError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={submittingReview}
-                  className="w-full py-2 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded transition-standard disabled:opacity-50 cursor-pointer"
-                >
-                  {submittingReview ? "Submitting..." : "Submit Review"}
-                </button>
-              </form>
-            </div>
-          </div>
-        </section>
+        <ReviewsSection
+          approvedReviews={approvedReviews}
+          newReview={newReview}
+          setNewReview={setNewReview}
+          onSubmitReview={handleSubmitReview}
+          submittingReview={submittingReview}
+          reviewSubmitMessage={reviewSubmitMessage}
+          reviewSubmitError={reviewSubmitError}
+        />
 
         {/* FAQ ACCORDION SECTION (Aarthi/Apollo inspired) */}
         <section className="space-y-6 max-w-4xl mx-auto border-t border-slate-100 pt-10">
@@ -1544,7 +1342,7 @@ export default function Home() {
                 a: "After collection, your blood samples are immediately sealed in chilled transport containers equipped with electronic temperature loggers. This guarantees they stay between 2°C and 8°C during transit to prevent cellular degradation before laboratory testing."
               }
             ].map((faq, idx) => (
-              <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden transition-all duration-300">
+              <div key={idx} className="glass-card rounded-xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow">
                 <button
                   type="button"
                   onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
@@ -1567,64 +1365,7 @@ export default function Home() {
       </main>
 
       {/* FOOTER */}
-      <footer id="contact" className="bg-slate-900 text-slate-400 border-t border-slate-800 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="space-y-4">
-            <h3 className="text-white font-bold text-lg">Vicky Diagnostics</h3>
-            <p className="text-xs leading-relaxed max-w-sm">
-              Digitizing and automating the complete diagnostic laboratory workflow. Delivering accurate reports with medical excellence.
-            </p>
-            <div className="pt-2">
-              <button
-                onClick={() => setShowAdminPipeline(true)}
-                className="text-xs text-slate-500 hover:text-white underline"
-              >
-                🔬 Staff Portal (Admin/Technician View)
-              </button>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider">Contact Details</h3>
-            <ul className="space-y-2 text-xs">
-              <li>📍 101 Diagnostic Towers, Madhapur, Hyderabad</li>
-              <li>📞 Phone: <a href="tel:9398175183" className="hover:underline hover:text-white transition-standard">+91 93981 75183</a></li>
-              <li>💬 WhatsApp: <a href="https://wa.me/919398175183" target="_blank" rel="noreferrer" className="hover:underline hover:text-white transition-standard">+91 93981 75183</a></li>
-              <li>✉️ Email: <a href="mailto:support@vickydiagnostics.com" className="hover:underline hover:text-white transition-standard">support@vickydiagnostics.com</a></li>
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider">Center Schedule</h3>
-            <ul className="space-y-2 text-xs">
-              <li>Monday - Saturday: 6:00 AM - 6:00 PM</li>
-              <li>Sunday: Closed (Emergencies only)</li>
-            </ul>
-            <div className="pt-2 space-y-3">
-              <a
-                href="https://maps.google.com/?q=Madhapur,Hyderabad"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded transition-standard"
-              >
-                📍 Get Directions Map
-              </a>
-              <div className="w-full h-32 rounded-lg overflow-hidden border border-slate-700 relative">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyAiTRAjKnKx43_FyAbcF3_nMLbMz0E2sGE'}&q=Vicky+Diagnostics,Madhapur,Hyderabad,India`}
-                ></iframe>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800 mt-8 pt-6 text-center text-xs text-slate-500">
-          &copy; 2026 Vicky Diagnostic Laboratory booking Platform. All rights reserved.
-        </div>
-      </footer>
+      <Footer onOpenAdminPortal={() => setShowAdminPipeline(true)} />
 
       {/* PATIENT PORTAL DIALOG (OTP Access Verification) */}
       {showReportPortal && (
@@ -1808,142 +1549,15 @@ export default function Home() {
         </div>
       )}
 
-      {/* OPERATIONS ADMIN PANEL SIMULATOR (STAFF VIEWS) */}
-      {showAdminPipeline && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-xl shadow-xl max-w-4xl w-full p-6 space-y-6 relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setShowAdminPipeline(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
-            >
-              ✕
-            </button>
-
-            <div className="border-b border-slate-200 pb-3">
-              <h3 className="text-lg font-bold text-slate-800">
-                🔬 Operational Booking Pipeline (Main Admin & Lab Tech View)
-              </h3>
-              <p className="text-xs text-slate-500">
-                Simulate the internal workflow from sample collection to technician PDF upload and admin approval.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="border border-slate-200 rounded-lg p-4 space-y-4">
-                <h4 className="text-sm font-bold text-slate-800 bg-slate-100 p-2 rounded">
-                  1. Lab Technician: Upload PDF Reports
-                </h4>
-                <div className="space-y-3">
-                  {adminBookings.filter(b => b.status === "Sample Collected").map(b => (
-                    <div key={b.id} className="border border-slate-200 rounded p-3 text-xs space-y-3 bg-slate-50">
-                      <div>
-                        <p className="font-bold">{b.patient} ({b.phone})</p>
-                        <p className="text-slate-500">Test: {b.tests.join(", ")} · Mode: {b.type}</p>
-                      </div>
-                      
-                      <div className="border-2 border-dashed border-slate-300 rounded-lg p-3 text-center bg-white space-y-2">
-                        <p className="text-[10px] text-slate-500">PDF Document Drag & Drop</p>
-                        <button
-                          onClick={() => handleUploadReportSimulate(b.id)}
-                          className="px-2.5 py-1 bg-primary text-white text-[10px] font-bold rounded"
-                        >
-                          Simulate PDF Upload &rarr;
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {adminBookings.filter(b => b.status === "Sample Collected").length === 0 && (
-                    <p className="text-xs text-slate-400 text-center py-6">No bookings in "Sample Collected" stage.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="border border-slate-200 rounded-lg p-4 space-y-4">
-                <h4 className="text-sm font-bold text-slate-800 bg-slate-100 p-2 rounded">
-                  2. Support Admin: Review & Approve Reports
-                </h4>
-                <div className="space-y-3">
-                  {adminBookings.filter(b => b.status === "Processing" && b.report_uploaded).map(b => (
-                    <div key={b.id} className="border border-slate-200 rounded p-3 text-xs space-y-3 bg-slate-50 animate-in fade-in duration-300">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-bold">{b.patient} ({b.phone})</p>
-                          <p className="text-slate-500">Test: {b.tests.join(", ")}</p>
-                          <p className="text-[10px] text-slate-400 mt-1">📄 File: report_{b.id}.pdf</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApproveReportSimulate(b.id)}
-                          className="flex-1 py-1.5 bg-accent hover:bg-accent-hover text-white font-bold rounded text-[10px] transition-standard"
-                        >
-                          ✓ Audit & Approve Report
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {adminBookings.filter(b => b.status === "Processing" && b.report_uploaded).length === 0 && (
-                    <p className="text-xs text-slate-400 text-center py-6">No reports pending administrative review.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="border border-slate-200 rounded-lg p-4 space-y-4">
-                <h4 className="text-sm font-bold text-slate-800 bg-slate-100 p-2 rounded">
-                  3. Support Admin: Review & Approve Patient Reviews
-                </h4>
-                <div className="space-y-3">
-                  {pendingReviews.map(rev => (
-                    <div key={rev.id} className="border border-slate-200 rounded p-3 text-xs space-y-3 bg-slate-50 animate-in fade-in duration-300">
-                      <div className="space-y-1">
-                        <p className="font-bold">{rev.patient_name} ({rev.rating} Stars)</p>
-                        <p className="text-slate-600 italic">"{rev.review_text}"</p>
-                      </div>
-                      <button
-                        onClick={() => handleApproveReview(rev.id)}
-                        className="w-full py-1.5 bg-accent hover:bg-accent-hover text-white font-bold rounded text-[10px] transition-standard cursor-pointer"
-                      >
-                        ✓ Approve & Publish Review
-                      </button>
-                    </div>
-                  ))}
-                  {pendingReviews.length === 0 && (
-                    <p className="text-xs text-slate-400 text-center py-6">No reviews pending administrative approval.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-200">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Live Booking Pipeline Log</h4>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="border border-slate-200 rounded p-2 bg-slate-50">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase">Confirmed</p>
-                  <p className="text-base font-bold text-slate-800 mt-1">
-                    {adminBookings.filter(b => b.status === "Confirmed").length}
-                  </p>
-                </div>
-                <div className="border border-slate-200 rounded p-2 bg-slate-50">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase">Collected / Processing</p>
-                  <p className="text-base font-bold text-slate-800 mt-1">
-                    {adminBookings.filter(b => b.status === "Sample Collected" || b.status === "Processing").length}
-                  </p>
-                </div>
-                <div className="border border-slate-200 rounded p-2 bg-slate-50">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase">Completed</p>
-                  <p className="text-base font-bold text-slate-800 mt-1">
-                    {adminBookings.filter(b => b.status === "Completed").length}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 leading-relaxed">
-              💡 <strong>Operational Flow Simulation Instruction:</strong> Click <strong>Simulate PDF Upload</strong> under the Lab Technician panel to upload the report for Saraswathi Devi. Once uploaded, she moves to the Support Admin panel. Click <strong>Audit & Approve Report</strong> to complete the process and push the record to "Completed".
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminPipelineSimulator
+        showAdminPipeline={showAdminPipeline}
+        setShowAdminPipeline={setShowAdminPipeline}
+        adminBookings={adminBookings}
+        handleUploadReportSimulate={handleUploadReportSimulate}
+        handleApproveReportSimulate={handleApproveReportSimulate}
+        pendingReviews={pendingReviews}
+        handleApproveReview={handleApproveReview}
+      />
       {/* Package Details Modal */}
       {activePackageDetails && (() => {
         const details = generatePackageDetails(activePackageDetails, tests);

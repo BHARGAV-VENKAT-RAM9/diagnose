@@ -273,8 +273,8 @@ def verify_payment(payload: PaymentVerify, db: Session = Depends(get_db)):
     if not booking:
         raise HTTPException(status_code=404, detail="Booking record not found.")
 
-    # Skip signature check for mock orders to ease testing
-    is_mock = payload.razorpay_order_id.startswith("order_mock_")
+    # Skip signature check for mock orders to ease testing ONLY when enabled in settings
+    is_mock = settings.ENABLE_MOCK_PAYMENTS and payload.razorpay_order_id.startswith("order_mock_")
     
     if not is_mock:
         try:

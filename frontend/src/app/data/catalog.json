@@ -1,0 +1,147 @@
+{
+  "tests": [
+    {
+      "id": "t1",
+      "name": "Complete Blood Count (CBC)",
+      "slug": "cbc",
+      "price": 299,
+      "tat": "12 Hours",
+      "sample_type": "Blood",
+      "priority": "ROUTINE",
+      "preparation": "No special preparation required.",
+      "home_collection": true,
+      "home_notes": "Avoid heavy meals just before.",
+      "description": "Evaluates overall health and detects anemia, infection, and leukemia."
+    },
+    {
+      "id": "t2",
+      "name": "Vitamin D (25-Hydroxy)",
+      "slug": "vitamin-d",
+      "price": 999,
+      "tat": "24 Hours",
+      "sample_type": "Blood",
+      "priority": "ROUTINE",
+      "preparation": "10-12 hours fasting is recommended.",
+      "home_collection": true,
+      "home_notes": "Drink plenty of water before collection.",
+      "description": "Measures Vitamin D concentration to identify bone and metabolism deficiencies."
+    },
+    {
+      "id": "t3",
+      "name": "Thyroid Profile (T3, T4, TSH)",
+      "slug": "thyroid-profile",
+      "price": 599,
+      "tat": "12 Hours",
+      "sample_type": "Blood",
+      "priority": "ROUTINE",
+      "preparation": "Morning sample preferred. Fasting optional.",
+      "home_collection": true,
+      "home_notes": "Collect early morning before taking thyroid medications.",
+      "description": "Assesses thyroid gland function to evaluate metabolic speed and energy."
+    },
+    {
+      "id": "t4",
+      "name": "Liver Function Test (LFT)",
+      "slug": "lft",
+      "price": 499,
+      "tat": "12 Hours",
+      "sample_type": "Blood",
+      "priority": "ROUTINE",
+      "preparation": "Fasting of 8-10 hours is mandatory.",
+      "home_collection": true,
+      "home_notes": "Avoid alcohol 24 hours prior to collection.",
+      "description": "Measures proteins, enzymes, and bilirubin to screen for liver disorders."
+    },
+    {
+      "id": "t5",
+      "name": "Digital ECG (Electrocardiogram)",
+      "slug": "digital-ecg",
+      "price": 399,
+      "tat": "2 Hours",
+      "sample_type": "Radiology",
+      "priority": "ROUTINE",
+      "preparation": "Avoid caffeine or nicotine 2 hours prior to the test.",
+      "home_collection": true,
+      "home_notes": "Requires a quiet, flat resting space.",
+      "description": "Records the electrical signals in your heart to check for different heart conditions."
+    },
+    {
+      "id": "t6",
+      "name": "Ultrasound Abdomen & Pelvis (USG)",
+      "slug": "ultrasound-abdomen-pelvis",
+      "price": 1299,
+      "tat": "4 Hours",
+      "sample_type": "Radiology",
+      "priority": "ROUTINE",
+      "preparation": "Full bladder required. Drink 4-5 glasses of water 1 hour before.",
+      "home_collection": false,
+      "home_notes": "Only available for walk-in lab visits.",
+      "description": "Uses sound waves to evaluate abdominal organs like liver, kidneys, gallbladder, spleen, and pelvis."
+    }
+  ],
+  "packages": [
+    {
+      "id": "p1",
+      "name": "Comprehensive Health Package",
+      "slug": "comprehensive-health-package",
+      "price": 1397,
+      "discount_price": 1199,
+      "tests": ["t1", "t3", "t4"],
+      "description": "Full body panel containing Complete Blood Count, Liver Function Test, and Thyroid Profile at a bundle discount."
+    },
+    {
+      "id": "p2",
+      "name": "Basic Health Checkup",
+      "slug": "basic-health-checkup",
+      "price": 1499,
+      "discount_price": 999,
+      "tests": ["t1", "glucose-fasting-fbs", "glycosylated-hba1c", "lipid-profile", "lft", "renal-profilerft-or-kft", "urine-complete-analysis-cue-urine", "tsh-thyroid-stimulating-hormone-ultra"],
+      "description": "Essential screening package evaluating overall health, blood sugar, lipid levels, thyroid, liver, and kidney function."
+    },
+    {
+      "id": "p3",
+      "name": "Diabetes Profile",
+      "slug": "diabetes-profile",
+      "price": 1999,
+      "discount_price": 1499,
+      "tests": ["glycosylated-hba1c", "glucose-fasting-fbs", "glucose-post-lunch", "urine-glucose-r", "micro-albumin-urine", "renal-profilerft-or-kft", "lipid-profile"],
+      "description": "Comprehensive panel for monitoring and diagnosing blood sugar levels, long-term glycemic control, and secondary diabetic implications on kidneys and lipids."
+    },
+    {
+      "id": "p4",
+      "name": "Thyroid Profile",
+      "slug": "thyroid-profile-package",
+      "price": 999,
+      "discount_price": 799,
+      "tests": ["t3", "t4", "tsh", "free-t3-triiodothyronine-free-t3", "free-t4-thyroxine-free", "tsh-thyroid-stimulating-hormone-ultra", "total-t4-thyroxine-t4", "thyroid-profile"],
+      "description": "Evaluates thyroid gland activity. Includes free and total thyroid hormones to screen for hyperthyroidism and hypothyroidism."
+    },
+    {
+      "id": "p5",
+      "name": "Heart Health Package",
+      "slug": "heart-health-package",
+      "price": 2499,
+      "discount_price": 1999,
+      "tests": ["t1", "lipid-profile", "digital-ecg", "crp-c-reactive-protein", "glucose-fasting-fbs", "lft", "renal-profilerft-or-kft"],
+      "description": "Cardiovascular screening package including lipid analysis, cardiac inflammatory marker (CRP), ECG, glucose, and metabolic status."
+    },
+    {
+      "id": "p6",
+      "name": "Women's Health Package",
+      "slug": "womens-health-package",
+      "price": 2999,
+      "discount_price": 2499,
+      "tests": ["t1", "glycosylated-hba1c", "lipid-profile", "thyroid-profile", "vitamin-d", "vitamin-b12-active-holotranscobalamin", "calcium", "iron-studies", "urine-complete-analysis-cue-urine"],
+      "description": "Specifically designed checkup for women, focusing on bone health, anemia, vitamins, thyroid function, and diabetic screening."
+    },
+    {
+      "id": "p7",
+      "name": "Senior Citizen Health Package",
+      "slug": "senior-citizen-health-package",
+      "price": 4499,
+      "discount_price": 3499,
+      "tests": ["t1", "glycosylated-hba1c", "glucose-fasting-fbs", "lipid-profile", "lft", "renal-profilerft-or-kft", "vitamin-d", "vitamin-b12-active-holotranscobalamin", "thyroid-profile", "digital-ecg", "urine-complete-analysis-cue-urine"],
+      "description": "Full body geriatric screening panel covering critical parameters for elder care including cardiac, kidney, liver, vitamins, and metabolic functions."
+    }
+  ]
+}

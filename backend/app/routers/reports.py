@@ -308,10 +308,12 @@ def upload_report(
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found.")
 
-    # Save to private storage
+    # Save to private storage using secure UUID filename
+    import uuid
+    secure_filename = f"{uuid.uuid4()}.pdf"
     private_dir = os.path.join("private_storage", str(booking_id))
     os.makedirs(private_dir, exist_ok=True)
-    dest_path = os.path.join(private_dir, file.filename)
+    dest_path = os.path.join(private_dir, secure_filename)
     
     file.file.seek(0)
     full_content = file.file.read()
@@ -322,7 +324,7 @@ def upload_report(
     file_size = len(full_content)
 
     # Storage path
-    relative_path = f"reports/{booking_id}/{file.filename}"
+    relative_path = f"reports/{booking_id}/{secure_filename}"
     
     # Save Report details to Database
     report = db.query(Report).filter(Report.booking_id == booking_id).first()

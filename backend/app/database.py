@@ -11,16 +11,6 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Dynamically add assigned_phlebotomist column if it doesn't exist
-from sqlalchemy import text
-try:
-    with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_phlebotomist VARCHAR(100);"))
-except Exception as e:
-    print("Warning: Dynamic schema migration failed:", e)
-
-
 Base = declarative_base()
 
 def get_db():

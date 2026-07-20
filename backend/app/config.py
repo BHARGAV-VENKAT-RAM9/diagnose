@@ -71,9 +71,13 @@ class Settings(BaseSettings):
     OTP_MAX_ATTEMPTS: int = Field(default=5)
     OTP_LOCKOUT_MINUTES: int = Field(default=15)
     OTP_EXPIRY_SECONDS: int = Field(default=300)
+    
+    ENABLE_MOCK_PAYMENTS: bool = Field(default=False)
+    SECRET_KEY: str = Field(default="")
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 settings = Settings()

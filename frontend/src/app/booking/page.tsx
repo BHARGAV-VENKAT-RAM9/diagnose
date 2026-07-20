@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense, useMemo, useRef } from "react";
 import { useTranslation } from "../context/TranslationContext";
 import { useCart } from "../context/CartContext";
 import { Header } from "../../components/Header";
+import { Footer } from "../../components/Footer";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import localTests from "../data/local_tests.json";
@@ -1991,35 +1992,7 @@ export default function BookingPage() {
       <Header />
       <BookingFlow />
       {/* Footer */}
-      <footer id="contact" className="bg-slate-900 text-slate-400 border-t border-slate-800 py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="space-y-4">
-            <h3 className="text-white font-bold text-lg">Vicky Diagnostics</h3>
-            <p className="text-xs leading-relaxed max-w-sm">
-              Digitizing and automating the complete diagnostic laboratory workflow. Delivering accurate reports with medical excellence.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider">Contact Details</h3>
-            <ul className="space-y-2 text-xs">
-              <li>📍 101 Diagnostic Towers, Madhapur, Hyderabad</li>
-              <li>📞 Phone: <a href="tel:9398175183" className="hover:underline hover:text-white transition-standard">+91 93981 75183</a></li>
-              <li>💬 WhatsApp: <a href="https://wa.me/919398175183" target="_blank" rel="noreferrer" className="hover:underline hover:text-white transition-standard">+91 93981 75183</a></li>
-              <li>✉️ Email: <a href="mailto:support@vickydiagnostics.com" className="hover:underline hover:text-white transition-standard">support@vickydiagnostics.com</a></li>
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider">Center Schedule</h3>
-            <ul className="space-y-2 text-xs">
-              <li>Monday - Saturday: 6:00 AM - 6:00 PM</li>
-              <li>Sunday: Closed (Emergencies only)</li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800 mt-8 pt-6 text-center text-xs text-slate-500">
-          &copy; 2026 Vicky Diagnostic Laboratory booking Platform. All rights reserved.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

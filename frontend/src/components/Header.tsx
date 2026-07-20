@@ -53,10 +53,13 @@ export const Header: React.FC = () => {
           <Link href="/" className="text-sm font-bold text-slate-800 hover:text-primary transition-standard hover:underline underline-offset-4 decoration-2 decoration-gold">
             {t("nav.home")}
           </Link>
+          <Link href="/about" className="text-sm font-bold text-slate-800 hover:text-primary transition-standard hover:underline underline-offset-4 decoration-2 decoration-gold">
+            About Us
+          </Link>
           <Link href="/#packages" className="text-sm font-bold text-slate-800 hover:text-primary transition-standard hover:underline underline-offset-4 decoration-2 decoration-gold">
             {t("nav.packages")}
           </Link>
-          <Link href="/#contact" className="text-sm font-bold text-slate-800 hover:text-primary transition-standard hover:underline underline-offset-4 decoration-2 decoration-gold">
+          <Link href="/contact" className="text-sm font-bold text-slate-800 hover:text-primary transition-standard hover:underline underline-offset-4 decoration-2 decoration-gold">
             {t("nav.contact")}
           </Link>
         </nav>
@@ -118,6 +121,13 @@ export const Header: React.FC = () => {
               {t("nav.home")}
             </Link>
             <Link
+              href="/about"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-base font-medium text-slate-700 hover:text-primary py-1"
+            >
+              About Us
+            </Link>
+            <Link
               href="/#packages"
               onClick={() => setMobileMenuOpen(false)}
               className="text-base font-medium text-slate-700 hover:text-primary py-1"
@@ -125,7 +135,7 @@ export const Header: React.FC = () => {
               {t("nav.packages")}
             </Link>
             <Link
-              href="/#contact"
+              href="/contact"
               onClick={() => setMobileMenuOpen(false)}
               className="text-base font-medium text-slate-700 hover:text-primary py-1"
             >

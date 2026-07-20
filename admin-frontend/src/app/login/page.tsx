@@ -49,32 +49,36 @@ export default function AdminLogin() {
       router.push("/dashboard");
     } catch (err: any) {
       // Fallback for offline demo mode
-      if (username === "admin" && password === "admin") {
-        localStorage.setItem("admin_token", "mock_admin_token_sspi_checksum");
-        localStorage.setItem("admin_role", "SUPPORT_ADMIN");
-        localStorage.setItem("admin_name", "Support Admin Demo");
-        localStorage.setItem("admin_user_id", "b586c58f-b41b-4bb9-9de5-6da6128cdc9e");
-        router.push("/dashboard");
-      } else if (username === "owner" && password === "owner") {
-        localStorage.setItem("admin_token", "mock_owner_token_sspi_checksum");
-        localStorage.setItem("admin_role", "MAIN_ADMIN");
-        localStorage.setItem("admin_name", "Main Admin Owner");
-        localStorage.setItem("admin_user_id", "22222222-2222-2222-2222-222222222222");
-        router.push("/dashboard");
-      } else if (username === "staff" && password === "staff") {
-        localStorage.setItem("admin_token", "mock_staff_token_sspi_checksum");
-        localStorage.setItem("admin_role", "LAB_TECHNICIAN");
-        localStorage.setItem("admin_name", "Staff Lab Technician Demo");
-        localStorage.setItem("admin_user_id", "11111111-1111-1111-1111-111111111111");
-        router.push("/dashboard");
-      } else if (username === "collector" && password === "collector") {
-        localStorage.setItem("admin_token", "mock_collector_token_sspi_checksum");
-        localStorage.setItem("admin_role", "PHLEBOTOMIST");
-        localStorage.setItem("admin_name", "Home Collector Team");
-        localStorage.setItem("admin_user_id", "33333333-3333-3333-3333-333333333333");
-        router.push("/dashboard");
+      if (process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === "true") {
+        if (username === "admin" && password === "admin") {
+          localStorage.setItem("admin_token", "mock_admin_token_sspi_checksum");
+          localStorage.setItem("admin_role", "SUPPORT_ADMIN");
+          localStorage.setItem("admin_name", "Support Admin Demo");
+          localStorage.setItem("admin_user_id", "b586c58f-b41b-4bb9-9de5-6da6128cdc9e");
+          router.push("/dashboard");
+        } else if (username === "owner" && password === "owner") {
+          localStorage.setItem("admin_token", "mock_owner_token_sspi_checksum");
+          localStorage.setItem("admin_role", "MAIN_ADMIN");
+          localStorage.setItem("admin_name", "Main Admin Owner");
+          localStorage.setItem("admin_user_id", "22222222-2222-2222-2222-222222222222");
+          router.push("/dashboard");
+        } else if (username === "staff" && password === "staff") {
+          localStorage.setItem("admin_token", "mock_staff_token_sspi_checksum");
+          localStorage.setItem("admin_role", "LAB_TECHNICIAN");
+          localStorage.setItem("admin_name", "Staff Lab Technician Demo");
+          localStorage.setItem("admin_user_id", "11111111-1111-1111-1111-111111111111");
+          router.push("/dashboard");
+        } else if (username === "collector" && password === "collector") {
+          localStorage.setItem("admin_token", "mock_collector_token_sspi_checksum");
+          localStorage.setItem("admin_role", "PHLEBOTOMIST");
+          localStorage.setItem("admin_name", "Home Collector Team");
+          localStorage.setItem("admin_user_id", "33333333-3333-3333-3333-333333333333");
+          router.push("/dashboard");
+        } else {
+          setError(err.message || "Network error. Try 'owner' / 'owner', 'admin' / 'admin', 'staff' / 'staff', or 'collector' / 'collector'.");
+        }
       } else {
-        setError(err.message || "Network error. Try 'owner' / 'owner', 'admin' / 'admin', 'staff' / 'staff', or 'collector' / 'collector'.");
+        setError(err.message || "Authentication failed or server is unreachable. Please try again later.");
       }
     } finally {
       setLoading(false);

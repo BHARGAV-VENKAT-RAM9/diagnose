@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { PipelineTab } from "../../components/PipelineTab";
+import { ReviewsTab } from "../../components/ReviewsTab";
+import { FinanceTab } from "../../components/FinanceTab";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -1068,70 +1071,12 @@ export default function AdminDashboard() {
               
               {/* TAB 1: KANBAN LIFECYCLE BOOKING PIPELINE */}
               {activeTab === "pipeline" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Bookings Pipeline Stages</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Pipeline column 1: Confirmed */}
-                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-3">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase pb-1 border-b">Confirmed</h4>
-                      {bookings.filter(b => b.status === "CONFIRMED").map(b => (
-                        <div key={b.id} className="bg-white border rounded p-3 text-xs space-y-2 shadow-sm">
-                          <p className="font-bold text-slate-800">{b.patient_name}</p>
-                          <p className="text-[10px] text-slate-500">Slot: {b.slot_time}</p>
-                          <p className="text-[10px] text-slate-500">Test: {b.tests.join(", ")}</p>
-                          <button
-                            onClick={() => updateBookingStatus(b.id, "SAMPLE_COLLECTED")}
-                            className="w-full mt-2 py-1 bg-primary text-white text-[10px] font-bold rounded hover:bg-primary-hover"
-                          >
-                            Mark Sample Collected &rarr;
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Pipeline column 2: Sample Collected / In Lab */}
-                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-3">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase pb-1 border-b">Processing / In Lab</h4>
-                      {bookings.filter(b => b.status === "SAMPLE_COLLECTED" || b.status === "PROCESSING").map(b => (
-                        <div key={b.id} className="bg-white border border-amber-200 rounded p-3 text-xs space-y-2 shadow-sm">
-                          <p className="font-bold text-slate-800">{b.patient_name}</p>
-                          <p className="text-[10px] text-slate-500">Test: {b.tests.join(", ")}</p>
-                          <span className="inline-block text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-                            Pending Report Upload
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Pipeline column 3: Report Uploaded (Needs Admin Approval) */}
-                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-3">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase pb-1 border-b">Uploaded / Approvals</h4>
-                      {bookings.filter(b => b.status === "REPORT_UPLOADED").map(b => (
-                        <div key={b.id} className="bg-white border border-green-200 rounded p-3 text-xs space-y-2 shadow-sm">
-                          <p className="font-bold text-slate-800">{b.patient_name}</p>
-                          <p className="text-[10px] text-slate-500">Test: {b.tests.join(", ")}</p>
-                          <button
-                            onClick={() => {
-                              if (b.report_id) {
-                                handleApproveReport(b.report_id, b.id);
-                              } else {
-                                updateBookingStatus(b.id, "COMPLETED");
-                              }
-                            }}
-                            className="w-full mt-2 py-1 bg-accent text-white text-[10px] font-bold rounded hover:bg-accent-hover cursor-pointer"
-                          >
-                            ✓ Approve & Notify patient
-                          </button>
-                          <button
-                            onClick={() => handleSendWhatsApp(b)}
-                            className="w-full mt-1.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            💬 Send on WhatsApp
-                          </button>                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                <PipelineTab
+                  bookings={bookings}
+                  updateBookingStatus={updateBookingStatus}
+                  handleApproveReport={handleApproveReport}
+                  handleSendWhatsApp={handleSendWhatsApp}
+                />
               )}
 
               {/* TAB 1.5: HOME COLLECTIONS OPERATIONS */}
@@ -1478,28 +1423,10 @@ export default function AdminDashboard() {
 
               {/* TAB 3: REVIEWS MODERATION QUEUE */}
               {activeTab === "reviews" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Patient Reviews Moderation Queue</h3>
-                  <div className="space-y-3">
-                    {reviews.map(rev => (
-                      <div key={rev.id} className="border border-slate-200 rounded-lg p-4 flex justify-between items-start bg-slate-50">
-                        <div className="space-y-1 text-xs">
-                          <p className="font-bold text-slate-800">{rev.name} (Rating: {rev.rating}★)</p>
-                          <p className="text-slate-600 italic">"{rev.text}"</p>
-                        </div>
-                        <button
-                          onClick={() => approveReview(rev.id)}
-                          className="px-3 py-1 bg-accent text-white text-xs font-bold rounded shadow hover:bg-accent-hover transition-standard"
-                        >
-                          Approve Review
-                        </button>
-                      </div>
-                    ))}
-                    {reviews.length === 0 && (
-                      <p className="text-xs text-slate-400 py-6 text-center">No pending reviews to moderate.</p>
-                    )}
-                  </div>
-                </div>
+                <ReviewsTab
+                  reviews={reviews}
+                  approveReview={approveReview}
+                />
               )}
 
               {/* TAB 4: B2B LEADS LIST */}
@@ -1663,100 +1590,12 @@ export default function AdminDashboard() {
 
               {/* TAB 6: FINANCE & REFUNDS */}
               {activeTab === "finance" && (
-                <div className="space-y-6 animate-in fade-in duration-200">
-                  <div className="flex justify-between items-center border-b pb-3">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Financial Transactions & Refunds</h3>
-                      <p className="text-xs text-slate-500">Track online Razorpay and offline cash payments</p>
-                    </div>
-                    <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full font-semibold">
-                      Total Revenue: ₹{kpis.totalRevenue}
-                    </span>
-                  </div>
-
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Razorpay (Online)</p>
-                      <p className="text-xl font-extrabold text-slate-900 mt-1">
-                        ₹{payments.filter(p => p.method === "RAZORPAY" && p.status === "SUCCESS").reduce((acc, curr) => acc + curr.amount, 0)}
-                      </p>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cash at Centre (Offline)</p>
-                      <p className="text-xl font-extrabold text-slate-900 mt-1">
-                        ₹{payments.filter(p => p.method === "CASH" && p.status === "SUCCESS").reduce((acc, curr) => acc + curr.amount, 0)}
-                      </p>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Refunded</p>
-                      <p className="text-xl font-extrabold text-red-600 mt-1">
-                        ₹{payments.filter(p => p.status === "REFUNDED").reduce((acc, curr) => acc + curr.amount, 0)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Payments Table */}
-                  <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
-                    <table className="w-full text-xs text-left text-slate-600">
-                      <thead className="bg-slate-100 font-bold text-slate-700 uppercase">
-                        <tr>
-                          <th className="p-3">Patient</th>
-                          <th className="p-3">Method</th>
-                          <th className="p-3">Amount</th>
-                          <th className="p-3">Date</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium">
-                        {payments.map(p => (
-                          <tr key={p.id} className="hover:bg-slate-50">
-                            <td className="p-3 font-bold text-slate-800">{p.patient_name}</td>
-                            <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                p.method === "RAZORPAY" ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              }`}>
-                                {p.method}
-                              </span>
-                            </td>
-                            <td className="p-3 font-bold text-slate-955">₹{p.amount}</td>
-                            <td className="p-3 text-slate-500">{p.created_at}</td>
-                            <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                p.status === "SUCCESS" ? "bg-green-100 text-green-800" :
-                                p.status === "PENDING" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"
-                              }`}>
-                                {p.status}
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              {p.status === "SUCCESS" && (
-                                <button
-                                  onClick={() => handleProcessRefund(p.id)}
-                                  className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
-                                >
-                                  Process Refund
-                                </button>
-                              )}
-                              {p.status === "REFUNDED" && (
-                                <span className="text-[10px] text-slate-400 italic">Refunded</span>
-                              )}
-                              {p.status === "PENDING" && (
-                                <button
-                                  onClick={() => handleMarkPaymentSuccess(p.id)}
-                                  className="px-2 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
-                                >
-                                  Mark Success
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                <FinanceTab
+                  payments={payments}
+                  totalRevenue={kpis.totalRevenue}
+                  handleProcessRefund={handleProcessRefund}
+                  handleMarkPaymentSuccess={handleMarkPaymentSuccess}
+                />
               )}
 
               {/* TAB 7: ANALYTICS & DETAILED REPORTS */}
