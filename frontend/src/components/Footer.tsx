@@ -3,11 +3,7 @@
 import React from "react";
 import Link from "next/link";
 
-interface FooterProps {
-  onOpenAdminPortal?: () => void;
-}
-
-export const Footer: React.FC<FooterProps> = ({ onOpenAdminPortal }) => {
+export const Footer: React.FC = () => {
   return (
     <footer id="contact" className="bg-slate-900 text-slate-400 border-t border-slate-800 py-12 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -28,16 +24,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdminPortal }) => {
           <p className="text-[11px] text-slate-500 border-t border-slate-800/80 pt-3">
             Vicky Diagnostics is a registered diagnostic laboratory center.
           </p>
-          {onOpenAdminPortal && (
-            <div className="pt-1">
-              <button
-                onClick={onOpenAdminPortal}
-                className="text-xs text-slate-400 hover:text-white underline transition-colors"
-              >
-                🔬 Staff Portal (Admin / Technician View)
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Column 2: Quick Links & Company */}

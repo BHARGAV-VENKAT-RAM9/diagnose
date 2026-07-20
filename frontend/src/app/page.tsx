@@ -1365,7 +1365,7 @@ export default function Home() {
       </main>
 
       {/* FOOTER */}
-      <Footer onOpenAdminPortal={() => setShowAdminPipeline(true)} />
+      <Footer />
 
       {/* PATIENT PORTAL DIALOG (OTP Access Verification) */}
       {showReportPortal && (
